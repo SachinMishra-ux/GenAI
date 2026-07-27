@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate 6-Encoder Transformer Visualizer | "we are friends"</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #070a12;
+            --card-bg: #0f172a;
+            --card-border: #1e293b;
+            --accent-blue: #38bdf8;
+            --accent-purple: #c084fc;
+            --accent-green: #4ade80;
+            --accent-amber: #fbbf24;
+            --accent-pink: #f472b6;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            padding: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1320px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .header-badge {
+            display: inline-block;
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-blue);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 0.3rem 0.88rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        h1 {
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: 2.3rem;
+            color: #ffffff;
+            margin-bottom: 0.4rem;
+        }
+
+        .translation-banner {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: #1e293b;
+            border: 1px solid #334155;
+            padding: 0.55rem 1.35rem;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        /* MASTER ENCODER STACK SELECTOR TABS */
+        .stack-selector-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 0.85rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stack-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .stack-title {
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: 1.25rem;
+            color: var(--accent-amber);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stack-tabs {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.6rem;
+            margin-bottom: 0.75rem;
+        }
+
+        @media (max-width: 900px) {
+            .stack-tabs { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        .enc-tab {
+            background: #070a12;
+            border: 1px solid var(--card-border);
+            border-radius: 0.6rem;
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .enc-tab:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .enc-tab.active-tab {
+            border-color: var(--accent-amber);
+            background: rgba(251, 191, 36, 0.15);
+            box-shadow: 0 0 14px rgba(251, 191, 36, 0.3);
+        }
+
+        .enc-tab.done-tab {
+            border-color: var(--accent-green);
+            background: rgba(74, 222, 128, 0.08);
+        }
+
+        .tab-num {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            background: #1e293b;
+            color: var(--accent-blue);
+            display: inline-block;
+            margin-bottom: 0.25rem;
+        }
+
+        .tab-name {
+            font-weight: 700;
+            font-size: 0.88rem;
+        }
+
+        .tab-vector-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+
+        /* Controls Row */
+        .controls-bar {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .btn-full-run {
+            flex: 1;
+            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+            color: #070a12;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.6rem;
+            font-weight: 800;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 14px rgba(251, 191, 36, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn-full-run:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(251, 191, 36, 0.5);
+        }
+
+        .btn-pause {
+            background: #1e293b;
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 0.75rem 1rem;
+            border-radius: 0.6rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        /* SUB-STEPPER NAVIGATION INSIDE SELECTED ENCODER */
+        .stepper {
+            display: flex;
+            gap: 0.4rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .step-btn {
+            flex: 1;
+            min-width: 120px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 0.55rem 0.4rem;
+            border-radius: 0.5rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .step-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--text-main);
+        }
+
+        .step-btn.active {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+        }
+
+        .step-btn .step-idx {
+            display: block;
+            font-size: 0.68rem;
+            opacity: 0.7;
+        }
+
+        /* MAIN CONTENT LAYOUT GRID */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 950px) {
+            .grid-layout { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 0.85rem;
+            padding: 1.25rem;
+        }
+
+        .card-header {
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: 1.2rem;
+            color: var(--accent-blue);
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Dynamic Explanation Box */
+        .explain-box {
+            background: #070a12;
+            border: 1px solid var(--card-border);
+            border-left: 4px solid var(--accent-purple);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.88rem;
+            line-height: 1.6;
+        }
+
+        .explain-box h4 {
+            color: var(--accent-purple);
+            font-size: 0.95rem;
+            margin-bottom: 0.4rem;
+        }
+
+        /* Tables & Vectors */
+        .vector-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+        }
+
+        .vector-table th {
+            text-align: left;
+            padding: 0.4rem 0.6rem;
+            background: #070a12;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .vector-table td {
+            padding: 0.5rem 0.6rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .word-cell {
+            font-weight: 700;
+            color: var(--accent-amber);
+        }
+
+        .vec-chip {
+            display: inline-block;
+            padding: 0.15rem 0.35rem;
+            border-radius: 3px;
+            margin-right: 0.2rem;
+            background: rgba(255,255,255,0.06);
+        }
+
+        /* Attention Heatmap Grid */
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(3, 1fr);
+            gap: 0.4rem;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            margin: 1rem 0;
+        }
+
+        .heatmap-cell {
+            padding: 0.75rem 0.5rem;
+            border-radius: 0.4rem;
+            text-align: center;
+            font-weight: 700;
+            transition: transform 0.2s ease;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.05);
+        }
+
+        .cell-label {
+            font-weight: 700;
+            color: var(--accent-amber);
+            text-align: right;
+            padding-right: 0.5rem;
+        }
+
+        /* Head Selector Tabs */
+        .head-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .head-btn {
+            background: #070a12;
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 0.35rem 0.75rem;
+            border-radius: 0.4rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .head-btn.active {
+            background: rgba(192, 132, 252, 0.2);
+            border-color: var(--accent-purple);
+            color: var(--accent-purple);
+        }
+
+        /* PAPER DIAGRAM SIDEBAR */
+        .paper-sidebar {
+            background: #070a12;
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .diagram-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .formula-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px dashed var(--card-border);
+            border-radius: 0.4rem;
+            padding: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-green);
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+
+        /* DECODER BANNER */
+        .decoder-final-card {
+            background: linear-gradient(135deg, rgba(74, 222, 128, 0.12) 0%, rgba(56, 189, 248, 0.12) 100%);
+            border: 1px solid var(--accent-green);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .decoder-title {
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: 1.15rem;
+            color: var(--accent-green);
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="header-badge">🎓 Ultimate Transformer Architecture Masterclass</div>
+        <h1>Dynamic 6-Encoder Stack & Attention Visualizer</h1>
+        <div class="translation-banner">
+            <span>Input: <span style="color: var(--accent-amber);">"we are friends"</span></span>
+            <span style="color: var(--text-muted);">➡️</span>
+            <span>Target Hindi: <span style="color: var(--accent-green);">"हम दोस्त हैं"</span></span>
+        </div>
+    </header>
+
+    <!-- 1. MASTER ENCODER STACK SELECTOR TABS -->
+    <div class="stack-selector-card">
+        <div class="stack-header">
+            <div class="stack-title">
+                <span>📦 Select Encoder Block (Stack N = 1 to 6)</span>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+                Current Active: <b id="current-encoder-title" style="color: var(--accent-amber);">Encoder Block 1</b>
+            </div>
+        </div>
+
+        <!-- 6 Encoder Tabs -->
+        <div class="stack-tabs">
+            <div class="enc-tab active-tab" id="tab-enc-1" onclick="selectEncoderBlock(1)">
+                <span class="tab-num">N = 1</span>
+                <div class="tab-name">Encoder 1</div>
+                <div class="tab-vector-tag" id="tag-enc-1">Input: Embeddings</div>
+            </div>
+            <div class="enc-tab" id="tab-enc-2" onclick="selectEncoderBlock(2)">
+                <span class="tab-num">N = 2</span>
+                <div class="tab-name">Encoder 2</div>
+                <div class="tab-vector-tag" id="tag-enc-2">Input: Z1</div>
+            </div>
+            <div class="enc-tab" id="tab-enc-3" onclick="selectEncoderBlock(3)">
+                <span class="tab-num">N = 3</span>
+                <div class="tab-name">Encoder 3</div>
+                <div class="tab-vector-tag" id="tag-enc-3">Input: Z2</div>
+            </div>
+            <div class="enc-tab" id="tab-enc-4" onclick="selectEncoderBlock(4)">
+                <span class="tab-num">N = 4</span>
+                <div class="tab-name">Encoder 4</div>
+                <div class="tab-vector-tag" id="tag-enc-4">Input: Z3</div>
+            </div>
+            <div class="enc-tab" id="tab-enc-5" onclick="selectEncoderBlock(5)">
+                <span class="tab-num">N = 5</span>
+                <div class="tab-name">Encoder 5</div>
+                <div class="tab-vector-tag" id="tag-enc-5">Input: Z4</div>
+            </div>
+            <div class="enc-tab" id="tab-enc-6" onclick="selectEncoderBlock(6)">
+                <span class="tab-num">N = 6</span>
+                <div class="tab-name">Encoder 6</div>
+                <div class="tab-vector-tag" id="tag-enc-6">Input: Z5</div>
+            </div>
+        </div>
+
+        <!-- Controls Row -->
+        <div class="controls-bar">
+            <button class="btn-full-run" id="btn-full-run" onclick="toggleFullPipelineAnimation()">
+                <span>🚀 Run Full 6-Encoder Deep Pipeline Animation</span>
+            </button>
+            <button class="btn-pause" onclick="resetPipeline()">🔄 Reset Stack</button>
+        </div>
+    </div>
+
+    <!-- 2. SUB-STEPPER FOR SELECTED ENCODER -->
+    <div class="stepper">
+        <button class="step-btn active" id="btn-substep-0" onclick="goToSubStep(0)">
+            <span class="step-idx">STEP 1</span>
+            Input Embeddings (X_embed)
+        </button>
+        <button class="step-btn" id="btn-substep-1" onclick="goToSubStep(1)">
+            <span class="step-idx">STEP 2</span>
+            Positional Addition (X_embed + PE)
+        </button>
+        <button class="step-btn" id="btn-substep-2" onclick="goToSubStep(2)">
+            <span class="step-idx">STEP 3</span>
+            Q, K, V Matrix Multiplications
+        </button>
+        <button class="step-btn" id="btn-substep-3" onclick="goToSubStep(3)">
+            <span class="step-idx">STEP 4</span>
+            Self-Attention Matrix
+        </button>
+        <button class="step-btn" id="btn-substep-4" onclick="goToSubStep(4)">
+            <span class="step-idx">STEP 5</span>
+            Multi-Head Attention
+        </button>
+        <button class="step-btn" id="btn-substep-5" onclick="goToSubStep(5)">
+            <span class="step-idx">STEP 6</span>
+            Add & Norm (LayerNorm)
+        </button>
+        <button class="step-btn" id="btn-substep-6" onclick="goToSubStep(6)">
+            <span class="step-idx">STEP 7</span>
+            Feed-Forward (FFNN)
+        </button>
+        <button class="step-btn" id="btn-substep-7" onclick="goToSubStep(7)">
+            <span class="step-idx">STEP 8</span>
+            Output Vector Z<span class="enc-num-lbl">1</span>
+        </button>
+    </div>
+
+    <!-- 3. DYNAMIC STEP WORKSPACE + PAPER DIAGRAM SIDEBAR -->
+    <div class="grid-layout">
+        <!-- Main Step Calculation Panel -->
+        <div class="card">
+            <div class="card-header">
+                <span id="step-title">Step 1: Input Vectors to Encoder 1</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);" id="step-counter">Step 1 of 8</span>
+            </div>
+
+            <!-- Dynamic Explanation Box -->
+            <div class="explain-box" id="step-explain">
+                <!-- Text injected dynamically -->
+            </div>
+
+            <!-- Step Interactive Workspace -->
+            <div id="step-workspace">
+                <!-- Data rendered dynamically -->
+            </div>
+        </div>
+
+        <!-- Sidebar: Accurate Paper Diagram matching Vaswani et al. (2017) -->
+        <div class="paper-sidebar">
+            <div class="diagram-title">Paper Diagram (Vaswani et al. 2017)</div>
+
+            <svg width="280" height="430" viewBox="0 0 280 430" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1 L 10 5 L 0 9 z" fill="#94a3b8"/>
+                    </marker>
+                    <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1 L 10 5 L 0 9 z" fill="#4ade80"/>
+                    </marker>
+                </defs>
+
+                <!-- Outer Nx Container Box -->
+                <rect x="52" y="50" width="180" height="235" rx="16" fill="#0f172a" stroke="#475569" stroke-width="2"/>
+                <!-- Label Nx outside top-left -->
+                <text x="14" y="70" fill="#fbbf24" font-size="14" font-weight="700" id="svg-stack-lbl">N = 1x</text>
+
+                <!-- Top Output Line exiting Encoder -->
+                <path d="M 140 50 L 140 20" stroke="#4ade80" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+
+                <!-- Top Add & Norm Box -->
+                <rect x="75" y="65" width="134" height="30" rx="6" id="svg-node-addnorm2" fill="#fef08a" fill-opacity="0.25" stroke="#facc15" stroke-width="2"/>
+                <text x="142" y="84" fill="#fef08a" font-size="11" font-weight="700" text-anchor="middle">Add & Norm</text>
+
+                <!-- Feed Forward Box -->
+                <rect x="75" y="110" width="134" height="34" rx="6" id="svg-node-ffn" fill="#bae6fd" fill-opacity="0.25" stroke="#38bdf8" stroke-width="2"/>
+                <text x="142" y="131" fill="#bae6fd" font-size="11" font-weight="700" text-anchor="middle">Feed Forward</text>
+
+                <!-- Middle Add & Norm Box -->
+                <rect x="75" y="160" width="134" height="30" rx="6" id="svg-node-addnorm1" fill="#fef08a" fill-opacity="0.25" stroke="#facc15" stroke-width="2"/>
+                <text x="142" y="179" fill="#fef08a" font-size="11" font-weight="700" text-anchor="middle">Add & Norm</text>
+
+                <!-- Multi-Head Attention Box -->
+                <rect x="75" y="205" width="134" height="36" rx="6" id="svg-node-mha" fill="#fde68a" fill-opacity="0.25" stroke="#fbbf24" stroke-width="2"/>
+                <text x="142" y="221" fill="#fde68a" font-size="10.5" font-weight="700" text-anchor="middle">Multi-Head</text>
+                <text x="142" y="233" fill="#fde68a" font-size="10.5" font-weight="700" text-anchor="middle">Attention</text>
+
+                <!-- Upper Residual Connection (Curved Line from below FeedForward around to top Add & Norm) -->
+                <path d="M 142 152 C 60 152, 60 80, 75 80" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+                <!-- Straight Arrow from FeedForward to top Add & Norm -->
+                <path d="M 142 110 L 142 95" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+
+                <!-- Lower Residual Connection (Curved Line from below MHA around to middle Add & Norm) -->
+                <path d="M 142 250 C 60 250, 60 175, 75 175" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+                <!-- Straight Arrow from MHA to middle Add & Norm -->
+                <path d="M 142 205 L 142 190" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+
+                <!-- Line from Add & Norm to Feed Forward -->
+                <path d="M 142 160 L 142 144" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+
+                <!-- 3 Split Arrows into Multi-Head Attention (Query, Key, Value) -->
+                <path d="M 142 270 L 142 241" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+                <path d="M 142 260 Q 120 260 120 241" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+                <path d="M 142 260 Q 164 260 164 241" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+
+                <!-- Line entering bottom of Encoder Nx -->
+                <line x1="142" y1="300" x2="142" y2="270" stroke="#94a3b8" stroke-width="1.8"/>
+
+                <!-- Positional Encoding Circle -->
+                <circle cx="95" cy="320" r="14" fill="#0f172a" stroke="#c084fc" stroke-width="2" id="svg-node-pe"/>
+                <path d="M 88 320 Q 91.5 313 95 320 T 102 320" stroke="#c084fc" stroke-width="2" fill="none"/>
+                <text x="12" y="324" fill="#c084fc" font-size="10" font-weight="600">Positional</text>
+                <text x="12" y="335" fill="#c084fc" font-size="10" font-weight="600">Encoding</text>
+
+                <!-- Addition Circle (+) -->
+                <circle cx="142" cy="320" r="10" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+                <text x="142" y="324" fill="#38bdf8" font-size="13" font-weight="700" text-anchor="middle">+</text>
+
+                <!-- Line connecting PE circle to + circle -->
+                <line x1="109" y1="320" x2="132" y2="320" stroke="#94a3b8" stroke-width="1.8"/>
+
+                <!-- Line from Input Embedding to + circle -->
+                <path d="M 142 355 L 142 330" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+
+                <!-- Input Embedding Box -->
+                <rect x="75" y="355" width="134" height="32" rx="6" id="svg-node-input" fill="#fbcfe8" fill-opacity="0.25" stroke="#f472b6" stroke-width="2"/>
+                <text x="142" y="375" fill="#fbcfe8" font-size="11" font-weight="700" text-anchor="middle">Input Embedding</text>
+
+                <!-- Inputs Arrow and Text -->
+                <path d="M 142 405 L 142 387" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+                <text x="142" y="418" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">Inputs ("we are friends")</text>
+            </svg>
+        </div>
+    </div>
+
+    <!-- 4. FINAL DECODER OUTPUT BANNER -->
+    <div class="decoder-final-card">
+        <div>
+            <div class="decoder-title">🏁 Output of Encoder 6 → Sent to Decoder Block</div>
+            <div style="font-size: 0.88rem; color: var(--text-muted);">
+                The final contextualized vectors <b>Z<sub>enc</sub></b> after passing through all 6 Encoder blocks are passed to the <b>Decoder's Cross-Attention Mechanism</b> to produce target Hindi words: <b>"हम"</b>, <b>"दोस्त"</b>, <b>"हैं"</b>.
+            </div>
+        </div>
+        <div>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: rgba(0,0,0,0.5); padding: 0.4rem 0.8rem; border-radius: 6px; color: var(--accent-green); border: 1px solid rgba(74, 222, 128, 0.4);">
+                Z_enc shape: (3 words × 512 dim)
+            </span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- RAW EMBEDDINGS & POSITIONAL ENCODINGS FOR ENCODER 1 ---
+    const RAW_EMBEDDINGS = [
+        { word: "we", id: 42, pos: 0, vec: [0.82, -0.45, 0.12, 0.91] },
+        { word: "are", id: 105, pos: 1, vec: [0.15, 0.78, -0.62, 0.34] },
+        { word: "friends", id: 812, pos: 2, vec: [0.95, -0.12, 0.88, 0.56] }
+    ];
+
+    const POSITIONAL_ENCODINGS = [
+        { word: "we", pos: 0, pe: [0.00, 1.00, 0.00, 1.00] },
+        { word: "are", pos: 1, pe: [0.84, 0.54, 0.10, 0.99] },
+        { word: "friends", pos: 2, pe: [0.91, -0.42, 0.20, 0.98] }
+    ];
+
+    // --- 6 ENCODERS MATHEMATICAL DATA ENGINE ---
+    const ENCODER_BLOCKS_DATA = {
+        1: {
+            inputLabel: "Raw Word Embeddings (X_embed)",
+            inputDesc: "Initial lookup vectors from vocabulary dictionary before adding positional encoding.",
+            inputVecs: RAW_EMBEDDINGS,
+            combinedVecs: [
+                { word: "we", vec: [0.82, 0.55, 0.12, 1.91] },
+                { word: "are", vec: [0.99, 1.32, -0.52, 1.33] },
+                { word: "friends", vec: [1.86, -0.54, 1.08, 1.54] }
+            ],
+            weights: {
+                WQ: [ [0.2, 0.1], [0.3, 0.5], [0.1, 0.2], [0.1, 0.4] ],
+                WK: [ [0.3, 0.2], [0.1, 0.4], [0.2, 0.3], [0.1, 0.3] ],
+                WV: [ [0.5, 0.1], [0.4, 0.2], [0.2, 0.5], [0.3, 0.1] ]
+            },
+            qkv: {
+                Q: { "we": [0.41, 0.88], "are": [0.12, 0.31], "friends": [0.79, 0.68] },
+                K: { "we": [0.49, 0.77], "are": [0.22, 0.41], "friends": [0.88, 0.59] },
+                V: { "we": [1.08, 0.22], "are": [0.39, 0.89], "friends": [1.48, 1.18] }
+            },
+            attnMatrix: [
+                [0.70, 0.15, 0.15],
+                [0.20, 0.60, 0.20],
+                [0.60, 0.10, 0.30]
+            ],
+            attnNote: "Encoder 1 establishes initial self-attention. 'friends' pays 60% attention to 'we'.",
+            outputVecs: [
+                { word: "we", vec: [0.91, 0.62, 0.25, 1.78] },
+                { word: "are", vec: [0.85, 1.20, -0.41, 1.42] },
+                { word: "friends", vec: [1.65, -0.32, 1.15, 1.48] }
+            ]
+        },
+        2: {
+            inputLabel: "Output Vector Z1 from Encoder 1",
+            inputDesc: "Encoder 2 receives Z1 vectors containing initial local syntactic context.",
+            inputVecs: [
+                { word: "we", vec: [0.91, 0.62, 0.25, 1.78] },
+                { word: "are", vec: [0.85, 1.20, -0.41, 1.42] },
+                { word: "friends", vec: [1.65, -0.32, 1.15, 1.48] }
+            ],
+            weights: {
+                WQ: [ [0.25, 0.15], [0.35, 0.45], [0.15, 0.25], [0.12, 0.38] ],
+                WK: [ [0.32, 0.22], [0.15, 0.38], [0.22, 0.28], [0.14, 0.32] ],
+                WV: [ [0.48, 0.15], [0.42, 0.25], [0.25, 0.48], [0.32, 0.14] ]
+            },
+            qkv: {
+                Q: { "we": [0.52, 0.79], "are": [0.25, 0.48], "friends": [0.85, 0.72] },
+                K: { "we": [0.55, 0.82], "are": [0.31, 0.52], "friends": [0.91, 0.64] },
+                V: { "we": [1.15, 0.35], "are": [0.52, 0.95], "friends": [1.58, 1.25] }
+            },
+            attnMatrix: [
+                [0.65, 0.25, 0.10],
+                [0.15, 0.70, 0.15],
+                [0.55, 0.15, 0.30]
+            ],
+            attnNote: "Encoder 2 refines verb-subject agreement between 'we' and 'are'.",
+            outputVecs: [
+                { word: "we", vec: [1.02, 0.71, 0.31, 1.69] },
+                { word: "are", vec: [0.76, 1.28, -0.35, 1.35] },
+                { word: "friends", vec: [1.72, -0.22, 1.09, 1.42] }
+            ]
+        },
+        3: {
+            inputLabel: "Output Vector Z2 from Encoder 2",
+            inputDesc: "Encoder 3 receives Z2. Deepens phrase-level connections between pronoun 'we' and plural noun 'friends'.",
+            inputVecs: [
+                { word: "we", vec: [1.02, 0.71, 0.31, 1.69] },
+                { word: "are", vec: [0.76, 1.28, -0.35, 1.35] },
+                { word: "friends", vec: [1.72, -0.22, 1.09, 1.42] }
+            ],
+            weights: {
+                WQ: [ [0.28, 0.18], [0.32, 0.42], [0.18, 0.22], [0.15, 0.35] ],
+                WK: [ [0.35, 0.25], [0.18, 0.35], [0.25, 0.25], [0.18, 0.28] ],
+                WV: [ [0.52, 0.18], [0.45, 0.28], [0.28, 0.45], [0.35, 0.18] ]
+            },
+            qkv: {
+                Q: { "we": [0.61, 0.75], "are": [0.32, 0.55], "friends": [0.89, 0.78] },
+                K: { "we": [0.63, 0.79], "are": [0.38, 0.58], "friends": [0.94, 0.71] },
+                V: { "we": [1.22, 0.42], "are": [0.61, 0.98], "friends": [1.66, 1.31] }
+            },
+            attnMatrix: [
+                [0.58, 0.22, 0.20],
+                [0.22, 0.58, 0.20],
+                [0.62, 0.12, 0.26]
+            ],
+            attnNote: "Encoder 3 strengthens noun phrase linkage ('we' ↔ 'friends').",
+            outputVecs: [
+                { word: "we", vec: [1.09, 0.78, 0.38, 1.61] },
+                { word: "are", vec: [0.69, 1.31, -0.28, 1.29] },
+                { word: "friends", vec: [1.81, -0.15, 1.02, 1.38] }
+            ]
+        },
+        4: {
+            inputLabel: "Output Vector Z3 from Encoder 3",
+            inputDesc: "Encoder 4 receives Z3. Enhances semantic richness of friendship topic.",
+            inputVecs: [
+                { word: "we", vec: [1.09, 0.78, 0.38, 1.61] },
+                { word: "are", vec: [0.69, 1.31, -0.28, 1.29] },
+                { word: "friends", vec: [1.81, -0.15, 1.02, 1.38] }
+            ],
+            weights: {
+                WQ: [ [0.31, 0.21], [0.38, 0.39], [0.21, 0.19], [0.18, 0.31] ],
+                WK: [ [0.38, 0.28], [0.21, 0.31], [0.28, 0.21], [0.21, 0.25] ],
+                WV: [ [0.55, 0.21], [0.48, 0.31], [0.31, 0.41], [0.38, 0.21] ]
+            },
+            qkv: {
+                Q: { "we": [0.68, 0.71], "are": [0.39, 0.61], "friends": [0.92, 0.82] },
+                K: { "we": [0.70, 0.74], "are": [0.42, 0.65], "friends": [0.96, 0.78] },
+                V: { "we": [1.28, 0.48], "are": [0.68, 1.02], "friends": [1.72, 1.36] }
+            },
+            attnMatrix: [
+                [0.52, 0.28, 0.20],
+                [0.25, 0.52, 0.23],
+                [0.65, 0.10, 0.25]
+            ],
+            attnNote: "Encoder 4 deepens semantic subject representation for translation.",
+            outputVecs: [
+                { word: "we", vec: [1.14, 0.82, 0.42, 1.54] },
+                { word: "are", vec: [0.61, 1.35, -0.21, 1.22] },
+                { word: "friends", vec: [1.88, -0.08, 0.98, 1.35] }
+            ]
+        },
+        5: {
+            inputLabel: "Output Vector Z4 from Encoder 4",
+            inputDesc: "Encoder 5 receives Z4. Prepares contextual representations for cross-lingual alignment.",
+            inputVecs: [
+                { word: "we", vec: [1.14, 0.82, 0.42, 1.54] },
+                { word: "are", vec: [0.61, 1.35, -0.21, 1.22] },
+                { word: "friends", vec: [1.88, -0.08, 0.98, 1.35] }
+            ],
+            weights: {
+                WQ: [ [0.34, 0.24], [0.41, 0.36], [0.24, 0.16], [0.21, 0.28] ],
+                WK: [ [0.41, 0.31], [0.24, 0.28], [0.31, 0.18], [0.24, 0.22] ],
+                WV: [ [0.58, 0.24], [0.51, 0.34], [0.34, 0.38], [0.41, 0.24] ]
+            },
+            qkv: {
+                Q: { "we": [0.74, 0.68], "are": [0.44, 0.66], "friends": [0.95, 0.86] },
+                K: { "we": [0.76, 0.71], "are": [0.48, 0.70], "friends": [0.98, 0.82] },
+                V: { "we": [1.32, 0.52], "are": [0.74, 1.05], "friends": [1.79, 1.40] }
+            },
+            attnMatrix: [
+                [0.48, 0.30, 0.22],
+                [0.28, 0.48, 0.24],
+                [0.67, 0.08, 0.25]
+            ],
+            attnNote: "Encoder 5 aligns concepts with target Hindi grammar ('हम' ↔ 'दोस्त' ↔ 'हैं').",
+            outputVecs: [
+                { word: "we", vec: [1.18, 0.85, 0.45, 1.48] },
+                { word: "are", vec: [0.55, 1.38, -0.15, 1.15] },
+                { word: "friends", vec: [1.92, -0.02, 0.95, 1.31] }
+            ]
+        },
+        6: {
+            inputLabel: "Output Vector Z5 from Encoder 5",
+            inputDesc: "Encoder 6 is the final encoder block! Produces final Z_enc vectors passed to Decoder.",
+            inputVecs: [
+                { word: "we", vec: [1.18, 0.85, 0.45, 1.48] },
+                { word: "are", vec: [0.55, 1.38, -0.15, 1.15] },
+                { word: "friends", vec: [1.92, -0.02, 0.95, 1.31] }
+            ],
+            weights: {
+                WQ: [ [0.38, 0.27], [0.44, 0.33], [0.27, 0.14], [0.24, 0.25] ],
+                WK: [ [0.44, 0.34], [0.27, 0.25], [0.34, 0.15], [0.27, 0.19] ],
+                WV: [ [0.61, 0.27], [0.54, 0.37], [0.37, 0.35], [0.44, 0.27] ]
+            },
+            qkv: {
+                Q: { "we": [0.81, 0.65], "are": [0.48, 0.71], "friends": [0.98, 0.89] },
+                K: { "we": [0.82, 0.68], "are": [0.52, 0.75], "friends": [0.99, 0.85] },
+                V: { "we": [1.38, 0.58], "are": [0.80, 1.09], "friends": [1.85, 1.44] }
+            },
+            attnMatrix: [
+                [0.45, 0.32, 0.23],
+                [0.30, 0.45, 0.25],
+                [0.68, 0.07, 0.25]
+            ],
+            attnNote: "Encoder 6 final output Z_enc! Fully contextualized vectors ready for Decoder Cross-Attention.",
+            outputVecs: [
+                { word: "we", vec: [1.22, 0.88, 0.48, 1.42] },
+                { word: "are", vec: [0.49, 1.41, -0.10, 1.09] },
+                { word: "friends", vec: [1.96, 0.04, 0.91, 1.28] }
+            ]
+        }
+    };
+
+    let selectedEncNum = 1;
+    let selectedSubStep = 0;
+    let pipelineAnimTimer = null;
+    let isPipelineRunning = false;
+
+    function selectEncoderBlock(encNum) {
+        selectedEncNum = encNum;
+        
+        for (let i = 1; i <= 6; i++) {
+            const tab = document.getElementById(`tab-enc-${i}`);
+            tab.classList.toggle('active-tab', i === encNum);
+        }
+
+        document.getElementById('current-encoder-title').innerText = `Encoder Block ${encNum}`;
+        document.querySelectorAll('.enc-num-lbl').forEach(el => el.innerText = encNum);
+        document.getElementById('svg-stack-lbl').innerText = `N = ${encNum}x`;
+
+        renderCurrentSubStep();
+    }
+
+    function goToSubStep(stepIdx) {
+        selectedSubStep = stepIdx;
+        
+        document.querySelectorAll('.step-btn').forEach((btn, i) => {
+            btn.classList.toggle('active', i === stepIdx);
+        });
+
+        renderCurrentSubStep();
+    }
+
+    function renderCurrentSubStep() {
+        const encData = ENCODER_BLOCKS_DATA[selectedEncNum];
+        const stepTitleEl = document.getElementById('step-title');
+        const stepCounterEl = document.getElementById('step-counter');
+        const explainEl = document.getElementById('step-explain');
+        const workspaceEl = document.getElementById('step-workspace');
+
+        stepCounterEl.innerText = `Step ${selectedSubStep + 1} of 8`;
+
+        const svgNodes = ['svg-node-input', 'svg-node-pe', 'svg-node-mha', 'svg-node-addnorm1', 'svg-node-ffn', 'svg-node-addnorm2'];
+        svgNodes.forEach(id => {
+            const node = document.getElementById(id);
+            if (node) node.setAttribute('stroke-width', '2');
+        });
+
+        if (selectedSubStep === 0) {
+            stepTitleEl.innerText = `Step 1: Input Embeddings to Encoder ${selectedEncNum}`;
+            document.getElementById('svg-node-input').setAttribute('stroke-width', '3.5');
+            
+            if (selectedEncNum === 1) {
+                explainEl.innerHTML = `
+                    <h4>🔤 Raw Word Embedding Lookup (X_embed)</h4>
+                    Each word token is mapped to its Token ID in the vocabulary dictionary matrix to retrieve its initial <b>Word Embedding Vector</b> (<i>d<sub>model</sub></i> = 4).
+                    <br>⚠️ <i>Notice: Raw word embeddings carry semantic meaning, but have <b>zero positional awareness</b>!</i>
+                `;
+                workspaceEl.innerHTML = `
+                    <table class="vector-table">
+                        <thead>
+                            <tr>
+                                <th>Token (Word)</th>
+                                <th>Token ID</th>
+                                <th>Initial Word Embedding Vector (X_embed)</th>
+                                <th>Lookup Source</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${RAW_EMBEDDINGS.map(item => `
+                                <tr>
+                                    <td class="word-cell">"${item.word}"</td>
+                                    <td>${item.id}</td>
+                                    <td><span class="vec-chip">[${item.vec.join(', ')}]</span></td>
+                                    <td>Vocab Embedding Matrix</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                explainEl.innerHTML = `
+                    <h4>🔤 Input Vector Z${selectedEncNum - 1} from Encoder ${selectedEncNum - 1}</h4>
+                    Encoder ${selectedEncNum} receives the refined contextualized vector <b>Z${selectedEncNum - 1}</b> emitted by the previous Encoder block ${selectedEncNum - 1}.
+                `;
+                workspaceEl.innerHTML = `
+                    <table class="vector-table">
+                        <thead>
+                            <tr>
+                                <th>Token (Word)</th>
+                                <th>Vector Z${selectedEncNum - 1} entering Encoder ${selectedEncNum}</th>
+                                <th>Emitted By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${encData.inputVecs.map(item => `
+                                <tr>
+                                    <td class="word-cell">"${item.word}"</td>
+                                    <td><span class="vec-chip">[${item.vec.join(', ')}]</span></td>
+                                    <td>Encoder Block ${selectedEncNum - 1}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+        } 
+        else if (selectedSubStep === 1) {
+            stepTitleEl.innerText = `Step 2: Positional Encoding Addition (X = X_embed + PE)`;
+            document.getElementById('svg-node-pe').setAttribute('stroke-width', '3.5');
+            
+            if (selectedEncNum === 1) {
+                explainEl.innerHTML = `
+                    <h4>📐 Element-Wise Vector Addition: X = X_embed + PE</h4>
+                    Sine and Cosine functions of different frequencies generate a position vector for each index (pos = 0, 1, 2).
+                    <br><b>Formulas:</b> 
+                    <code>PE(pos, 2i) = sin( pos / 10000<sup>2i/d</sup> )</code> &nbsp;|&nbsp; 
+                    <code>PE(pos, 2i+1) = cos( pos / 10000<sup>2i/d</sup> )</code>
+                `;
+                workspaceEl.innerHTML = `
+                    <table class="vector-table">
+                        <thead>
+                            <tr>
+                                <th>Word (Pos)</th>
+                                <th>Word Embedding (X_embed)</th>
+                                <th></th>
+                                <th>Positional Encoding (PE)</th>
+                                <th></th>
+                                <th>Combined Input Vector (X)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${RAW_EMBEDDINGS.map((item, i) => `
+                                <tr>
+                                    <td class="word-cell">"${item.word}" (pos ${item.pos})</td>
+                                    <td>[${item.vec.join(', ')}]</td>
+                                    <td style="color:var(--accent-amber); font-weight:700;">+</td>
+                                    <td style="color:var(--accent-purple);">[${POSITIONAL_ENCODINGS[i].pe.join(', ')}]</td>
+                                    <td style="color:var(--accent-amber); font-weight:700;">=</td>
+                                    <td style="color:var(--accent-blue); font-weight:700;">[${encData.combinedVecs[i].vec.join(', ')}]</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                explainEl.innerHTML = `
+                    <h4>📐 Positional Information Retained in Vector Z${selectedEncNum - 1}</h4>
+                    Encoders 2 through 6 do not need to re-add positional encodings! Position information is already binned into vector <b>Z${selectedEncNum - 1}</b> and preserved across layers via residual skip connections.
+                `;
+                workspaceEl.innerHTML = `
+                    <table class="vector-table">
+                        <thead>
+                            <tr>
+                                <th>Word Token</th>
+                                <th>Vector Z${selectedEncNum - 1} entering Encoder ${selectedEncNum}</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${encData.inputVecs.map(item => `
+                                <tr>
+                                    <td class="word-cell">"${item.word}"</td>
+                                    <td style="color:var(--accent-blue); font-weight:700;">[${item.vec.join(', ')}]</td>
+                                    <td style="color:var(--accent-green);">PE Already Retained ✓</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+        }
+        else if (selectedSubStep === 2) {
+            stepTitleEl.innerText = `Step 3: Q, K, V Matrix Multiplications in Encoder ${selectedEncNum}`;
+            document.getElementById('svg-node-mha').setAttribute('stroke-width', '3.5');
+            
+            const wq = encData.weights.WQ;
+            explainEl.innerHTML = `
+                <h4>🔍 Step 3: Projection Calculations for Query (Q), Key (K), and Value (V)</h4>
+                Each input vector <b>X</b> (dimension 4) is multiplied by 3 learned Weight Matrices 
+                (<b><i>W</i><sup>Q</sup><sub>${selectedEncNum}</sub></b>, <b><i>W</i><sup>K</sup><sub>${selectedEncNum}</sub></b>, <b><i>W</i><sup>V</sup><sub>${selectedEncNum}</sub></b> of dimension 4 &times; 2) 
+                to compute 2D Query, Key, and Value vectors:
+                <br><b>Formulas:</b> 
+                <code>Q = X &middot; W<sup>Q</sup></code> &nbsp;|&nbsp; 
+                <code>K = X &middot; W<sup>K</sup></code> &nbsp;|&nbsp; 
+                <code>V = X &middot; W<sup>V</sup></code>
+            `;
+            workspaceEl.innerHTML = `
+                <!-- Weight Matrices Visual Grids -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 0.75rem;">
+                    <div style="background:#070a12; padding:0.6rem 0.75rem; border-radius:0.5rem; border:1px solid var(--card-border);">
+                        <h5 style="color:var(--accent-pink); font-size:0.8rem; margin-bottom:0.3rem;">🔴 Weight Matrix W<sup>Q</sup><sub>${selectedEncNum}</sub> (4 &times; 2)</h5>
+                        <p style="font-family:'JetBrains Mono', monospace; font-size:0.75rem; color:var(--text-muted);">
+                            [ ${wq[0].join(', ')} ]<br>
+                            [ ${wq[1].join(', ')} ]<br>
+                            [ ${wq[2].join(', ')} ]<br>
+                            [ ${wq[3].join(', ')} ]
+                        </p>
+                    </div>
+                    <div style="background:#070a12; padding:0.6rem 0.75rem; border-radius:0.5rem; border:1px solid var(--card-border);">
+                        <h5 style="color:var(--accent-blue); font-size:0.8rem; margin-bottom:0.3rem;">🔵 Weight Matrix W<sup>K</sup><sub>${selectedEncNum}</sub> (4 &times; 2)</h5>
+                        <p style="font-family:'JetBrains Mono', monospace; font-size:0.75rem; color:var(--text-muted);">
+                            [ ${encData.weights.WK[0].join(', ')} ]<br>
+                            [ ${encData.weights.WK[1].join(', ')} ]<br>
+                            [ ${encData.weights.WK[2].join(', ')} ]<br>
+                            [ ${encData.weights.WK[3].join(', ')} ]
+                        </p>
+                    </div>
+                    <div style="background:#070a12; padding:0.6rem 0.75rem; border-radius:0.5rem; border:1px solid var(--card-border);">
+                        <h5 style="color:var(--accent-green); font-size:0.8rem; margin-bottom:0.3rem;">🟢 Weight Matrix W<sup>V</sup><sub>${selectedEncNum}</sub> (4 &times; 2)</h5>
+                        <p style="font-family:'JetBrains Mono', monospace; font-size:0.75rem; color:var(--text-muted);">
+                            [ ${encData.weights.WV[0].join(', ')} ]<br>
+                            [ ${encData.weights.WV[1].join(', ')} ]<br>
+                            [ ${encData.weights.WV[2].join(', ')} ]<br>
+                            [ ${encData.weights.WV[3].join(', ')} ]
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Explicit Dot Product Step for "we" -->
+                <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.65rem 0.85rem; border-radius: 0.5rem; margin-bottom: 0.75rem;">
+                    <div style="font-weight:700; color:var(--accent-blue); font-size:0.85rem; margin-bottom:0.2rem;">🧮 Matrix Multiplication Breakdown for "we":</div>
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:0.78rem; color:var(--text-main); line-height:1.5;">
+                        Q("we") = [${encData.combinedVecs ? encData.combinedVecs[0].vec.join(', ') : encData.inputVecs[0].vec.join(', ')}] &middot; W<sup>Q</sup><sub>${selectedEncNum}</sub> = 
+                        [ (${encData.combinedVecs ? encData.combinedVecs[0].vec[0] : encData.inputVecs[0].vec[0]}&times;${wq[0][0]} + ...), (${encData.combinedVecs ? encData.combinedVecs[0].vec[1] : encData.inputVecs[0].vec[1]}&times;${wq[1][1]} + ...) ] = <b style="color:var(--accent-pink);">[${encData.qkv.Q["we"].join(', ')}]</b>
+                    </div>
+                </div>
+
+                <!-- Resulting Vector Lists -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+                    <div style="background:#070a12; padding:0.6rem 0.75rem; border-radius:0.5rem; border:1px solid var(--card-border);">
+                        <h5 style="color:var(--accent-pink); font-size:0.8rem; margin-bottom:0.3rem;">🔴 Queries (Q)</h5>
+                        ${Object.entries(encData.qkv.Q).map(([w, v]) => `<p style="font-size:0.78rem;">Q("${w}"): [${v.join(', ')}]</p>`).join('')}
+                    </div>
+                    <div style="background:#070a12; padding:0.6rem 0.75rem; border-radius:0.5rem; border:1px solid var(--card-border);">
+                        <h5 style="color:var(--accent-blue); font-size:0.8rem; margin-bottom:0.3rem;">🔵 Keys (K)</h5>
+                        ${Object.entries(encData.qkv.K).map(([w, v]) => `<p style="font-size:0.78rem;">K("${w}"): [${v.join(', ')}]</p>`).join('')}
+                    </div>
+                    <div style="background:#070a12; padding:0.6rem 0.75rem; border-radius:0.5rem; border:1px solid var(--card-border);">
+                        <h5 style="color:var(--accent-green); font-size:0.8rem; margin-bottom:0.3rem;">🟢 Values (V)</h5>
+                        ${Object.entries(encData.qkv.V).map(([w, v]) => `<p style="font-size:0.78rem;">V("${w}"): [${v.join(', ')}]</p>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        else if (selectedSubStep === 3) {
+            stepTitleEl.innerText = `Step 4: Self-Attention Matrix in Encoder ${selectedEncNum}`;
+            document.getElementById('svg-node-mha').setAttribute('stroke-width', '3.5');
+            explainEl.innerHTML = `
+                <h4>📊 Attention Softmax Weights (Encoder ${selectedEncNum})</h4>
+                Formula: <code>Softmax( (Q &middot; K<sup>T</sup>) / &radic;d<sub>k</sub> )</code>
+                <br><i>${encData.attnNote}</i>
+            `;
+            const words = ["we", "are", "friends"];
+            workspaceEl.innerHTML = `
+                <div class="heatmap-grid">
+                    <div></div>
+                    ${words.map(w => `<div style="text-align:center; font-weight:700; color:var(--text-muted);">"${w}"</div>`).join('')}
+                    ${words.map((w1, r) => `
+                        <div class="cell-label">"${w1}"</div>
+                        ${words.map((w2, c) => {
+                            const val = encData.attnMatrix[r][c];
+                            const pct = (val * 100).toFixed(0) + '%';
+                            const opacity = Math.max(val, 0.15);
+                            return `<div class="heatmap-cell" style="background: rgba(56, 189, 248, ${opacity}); color:${val > 0.4 ? '#000' : '#fff'};">${pct}</div>`;
+                        }).join('')}
+                    `).join('')}
+                </div>
+            `;
+        }
+        else if (selectedSubStep === 4) {
+            stepTitleEl.innerText = `Step 5: Multi-Head Attention in Encoder ${selectedEncNum}`;
+            document.getElementById('svg-node-mha').setAttribute('stroke-width', '3.5');
+            explainEl.innerHTML = `
+                <h4>👁️👁️ Parallel Multi-Head Attention (Encoder ${selectedEncNum})</h4>
+                Computes multiple attention heads in parallel and concatenates them through matrix <b><i>W</i><sup>O</sup><sub>${selectedEncNum}</sub></b>.
+            `;
+            workspaceEl.innerHTML = `
+                <div style="background:#070a12; padding:0.85rem; border-radius:0.5rem; border:1px solid var(--card-border);">
+                    <div style="color:var(--accent-purple); font-weight:700;">Multi-Head Concatenation:</div>
+                    <div style="font-size:0.85rem; margin-top:0.3rem;">Concat(Head 1, Head 2, ..., Head h) &middot; W<sup>O</sup><sub>${selectedEncNum}</sub></div>
+                </div>
+            `;
+        }
+        else if (selectedSubStep === 5) {
+            stepTitleEl.innerText = `Step 6: Add & Norm (Encoder ${selectedEncNum})`;
+            document.getElementById('svg-node-addnorm1').setAttribute('stroke-width', '3.5');
+            explainEl.innerHTML = `
+                <h4>➕ Residual Connection + LayerNorm (Encoder ${selectedEncNum})</h4>
+                Adds input vector to MHA output: <code>LayerNorm( Input + MHA(Input) )</code>.
+            `;
+            workspaceEl.innerHTML = `
+                <div style="background:#070a12; padding:0.85rem; border-radius:0.5rem; border:1px solid var(--card-border); font-family:'JetBrains Mono', monospace; font-size:0.85rem;">
+                    <div style="color:var(--accent-amber);">Input Vector: [${encData.inputVecs[0].vec.join(', ')}]</div>
+                    <div style="color:var(--accent-purple);">+ MHA Output: [0.35, -0.12, 0.44, 0.20]</div>
+                    <div style="color:var(--accent-green); font-weight:700; margin-top:0.4rem;">= LayerNorm Out: [${encData.outputVecs[0].vec.join(', ')}]</div>
+                </div>
+            `;
+        }
+        else if (selectedSubStep === 6) {
+            stepTitleEl.innerText = `Step 7: Feed-Forward Network in Encoder ${selectedEncNum}`;
+            document.getElementById('svg-node-ffn').setAttribute('stroke-width', '3.5');
+            explainEl.innerHTML = `
+                <h4>🧠 Position-wise Feed-Forward Network (Encoder ${selectedEncNum})</h4>
+                2-layer fully connected network: <code>FFN(Z) = max(0, Z &middot; W<sub>1</sub> + b<sub>1</sub>) &middot; W<sub>2</sub> + b<sub>2</sub></code>
+            `;
+            workspaceEl.innerHTML = `
+                <div style="background:#070a12; padding:0.85rem; border-radius:0.5rem; border:1px solid var(--card-border); font-size:0.85rem;">
+                    <div style="color:var(--accent-blue);">Linear Layer 1 (Expands dimension 4 &rarr; 16)</div>
+                    <div style="color:var(--accent-amber);">&darr; ReLU Activation</div>
+                    <div style="color:var(--accent-green);">Linear Layer 2 (Compresses back 16 &rarr; 4)</div>
+                </div>
+            `;
+        }
+        else if (selectedSubStep === 7) {
+            stepTitleEl.innerText = `Step 8: Output Vector Z${selectedEncNum} (Encoder ${selectedEncNum})`;
+            document.getElementById('svg-node-addnorm2').setAttribute('stroke-width', '3.5');
+            explainEl.innerHTML = `
+                <h4>🏁 Final Output Vector Z${selectedEncNum} of Encoder ${selectedEncNum}</h4>
+                This vector sequence <b>Z${selectedEncNum}</b> is now passed directly into 
+                ${selectedEncNum < 6 ? `<b>Encoder Block ${selectedEncNum + 1}</b>` : `the <b>Decoder Block (Cross-Attention)</b>`}.
+            `;
+            workspaceEl.innerHTML = `
+                <table class="vector-table">
+                    <thead>
+                        <tr>
+                            <th>Word Token</th>
+                            <th>Output Vector Z${selectedEncNum} (Encoder ${selectedEncNum})</th>
+                            <th>Passed To</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${encData.outputVecs.map(item => `
+                            <tr>
+                                <td class="word-cell">"${item.word}"</td>
+                                <td style="color:var(--accent-green); font-weight:700;">[${item.vec.join(', ')}]</td>
+                                <td style="color:var(--accent-amber);">${selectedEncNum < 6 ? `Encoder ${selectedEncNum + 1}` : 'Decoder &rarr; "हम दोस्त हैं"'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+    }
+
+    function toggleFullPipelineAnimation() {
+        if (isPipelineRunning) {
+            clearInterval(pipelineAnimTimer);
+            isPipelineRunning = false;
+            document.getElementById('btn-full-run').innerText = "🚀 Run Full 6-Encoder Deep Pipeline Animation";
+            return;
+        }
+
+        isPipelineRunning = true;
+        document.getElementById('btn-full-run').innerText = "⏸️ Pause Pipeline Animation";
+
+        let currentEnc = selectedEncNum;
+        let currentStepIdx = selectedSubStep;
+
+        pipelineAnimTimer = setInterval(() => {
+            currentStepIdx++;
+            if (currentStepIdx > 7) {
+                currentStepIdx = 0;
+                currentEnc++;
+                if (currentEnc > 6) {
+                    currentEnc = 1;
+                }
+            }
+
+            selectEncoderBlock(currentEnc);
+            goToSubStep(currentStepIdx);
+
+            for (let i = 1; i <= 6; i++) {
+                const tab = document.getElementById(`tab-enc-${i}`);
+                if (i < currentEnc) {
+                    tab.className = "enc-tab done-tab";
+                } else if (i === currentEnc) {
+                    tab.className = "enc-tab active-tab";
+                } else {
+                    tab.className = "enc-tab";
+                }
+            }
+        }, 1600);
+    }
+
+    function resetPipeline() {
+        if (isPipelineRunning) {
+            clearInterval(pipelineAnimTimer);
+            isPipelineRunning = false;
+            document.getElementById('btn-full-run').innerText = "🚀 Run Full 6-Encoder Deep Pipeline Animation";
+        }
+        for (let i = 1; i <= 6; i++) {
+            const tab = document.getElementById(`tab-enc-${i}`);
+            tab.className = i === 1 ? "enc-tab active-tab" : "enc-tab";
+        }
+        selectEncoderBlock(1);
+        goToSubStep(0);
+    }
+
+    // Initialize
+    selectEncoderBlock(1);
+</script>
+</body>
+</html>

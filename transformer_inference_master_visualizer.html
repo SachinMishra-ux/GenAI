@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transformer Inference Masterclass</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#07101e;color:#f0f4ff;font-family:Arial,sans-serif;padding:20px;}
+h1{font-size:1.8rem;color:#fff;text-align:center;margin-bottom:6px;}
+.subtitle{text-align:center;color:#94a3b8;font-size:0.95rem;margin-bottom:20px;}
+
+/* TOP TRANSLATION BAR */
+.trans-bar{display:flex;justify-content:center;align-items:center;gap:16px;background:#101c30;border:1px solid #1e3a5f;padding:10px 24px;border-radius:30px;margin:0 auto 24px auto;width:fit-content;font-size:0.95rem;font-weight:600;}
+.src-label{color:#38bdf8;} .tgt-label{color:#4ade80;}
+
+/* BIG PLAY BUTTON AREA */
+.controls{background:#0f1e35;border:1px solid #1e3a5f;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+button{cursor:pointer;border:none;border-radius:8px;font-size:0.88rem;font-weight:700;padding:10px 18px;transition:transform 0.1s;}
+button:active{transform:scale(0.97);}
+.btn-green{background:linear-gradient(135deg,#22c55e,#15803d);color:#fff;box-shadow:0 4px 14px rgba(34,197,94,0.35);}
+.btn-blue{background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;box-shadow:0 4px 14px rgba(14,165,233,0.35);}
+.btn-gray{background:#1e293b;color:#cbd5e1;border:1px solid #334155;}
+
+/* PROGRESS INDICATOR */
+.progress-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.prog-chip{flex:1;min-width:130px;background:#0f1e35;border:1px solid #1e3a5f;border-radius:8px;padding:10px 8px;text-align:center;font-size:0.78rem;cursor:pointer;transition:all 0.2s;}
+.prog-chip:hover{border-color:#38bdf8;}
+.prog-chip.active{border-color:#4ade80;background:rgba(74,222,128,0.12);box-shadow:0 0 12px rgba(74,222,128,0.2);}
+.prog-chip .pnum{display:block;font-size:0.65rem;color:#4ade80;font-weight:800;margin-bottom:3px;}
+.prog-chip .pname{font-weight:700;color:#fff;font-size:0.82rem;}
+.prog-chip .psub{font-size:0.7rem;color:#94a3b8;margin-top:2px;}
+
+/* TWO-COLUMN MAIN LAYOUT */
+.main-layout{display:grid;grid-template-columns:1fr 300px;gap:18px;}
+@media(max-width:900px){.main-layout{grid-template-columns:1fr;}}
+
+/* MAIN STEP PANEL */
+.step-panel{background:#0f1e35;border:1px solid #1e3a5f;border-radius:12px;padding:20px;}
+.step-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.step-title{font-size:1.1rem;font-weight:700;color:#4ade80;}
+.step-badge{background:#0f2940;border:1px solid #0369a1;color:#38bdf8;font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:20px;}
+
+/* FORMULA BOX */
+.formula-box{background:#060f1e;border:1px solid #1e3a5f;border-left:4px solid #fbbf24;border-radius:8px;padding:14px;margin-bottom:16px;font-size:0.87rem;line-height:1.65;}
+.formula-box h4{color:#fbbf24;font-size:0.92rem;margin-bottom:6px;}
+.formula-box code{background:#1e293b;padding:2px 6px;border-radius:4px;font-family:'Courier New',monospace;font-size:0.82rem;color:#a5f3fc;}
+
+/* TABLES */
+.data-table{width:100%;border-collapse:collapse;font-size:0.84rem;font-family:'Courier New',monospace;}
+.data-table th{text-align:left;padding:8px 10px;background:#060f1e;color:#94a3b8;border-bottom:1px solid #1e3a5f;}
+.data-table td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,0.04);}
+.data-table tr.winner{background:rgba(74,222,128,0.1);}
+.tok-green{color:#4ade80;font-weight:700;}
+.tok-blue{color:#38bdf8;font-weight:700;}
+.tok-amber{color:#fbbf24;font-weight:700;}
+.tok-red{color:#f87171;font-weight:700;text-decoration:line-through;}
+
+/* HEATMAP GRID */
+.hmap-wrap{overflow-x:auto;margin-top:8px;}
+.hmap{display:inline-grid;gap:5px;align-items:center;}
+.hmap-cell{padding:10px 8px;border-radius:6px;text-align:center;font-weight:700;font-size:0.82rem;min-width:70px;}
+.hmap-mask{background:rgba(248,113,113,0.15);color:#f87171;border:1px dashed rgba(248,113,113,0.4);text-decoration:line-through;}
+.hmap-lbl{font-weight:700;color:#4ade80;text-align:right;padding-right:8px;font-size:0.82rem;}
+.hmap-corner{color:#94a3b8;font-size:0.75rem;}
+.hmap-hdr{color:#94a3b8;text-align:center;font-size:0.75rem;font-weight:700;}
+
+/* SIDEBAR */
+.sidebar{background:#0f1e35;border:1px solid #1e3a5f;border-radius:12px;padding:16px;text-align:center;}
+.sidebar-title{font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:10px;}
+
+/* ENC / DEC BOX VISUALIZER */
+.arch-box{border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:0.82rem;font-weight:700;border:2px solid transparent;}
+.arch-enc{background:rgba(56,189,248,0.1);border-color:#38bdf8;color:#38bdf8;}
+.arch-dec{background:rgba(192,132,252,0.1);border-color:#c084fc;color:#c084fc;}
+.arch-arrow{color:#94a3b8;font-size:1.2rem;margin:4px 0;}
+.arch-softmax{background:rgba(244,114,182,0.1);border-color:#f472b6;color:#f472b6;}
+.arch-inner{margin-top:6px;font-size:0.73rem;color:#94a3b8;line-height:1.5;}
+.arch-inner span{display:block;padding:3px 6px;border-radius:4px;margin-bottom:2px;}
+.arch-inner .ai{background:rgba(251,191,36,0.12);color:#fbbf24;}
+.arch-inner .ci{background:rgba(74,222,128,0.12);color:#4ade80;}
+.arch-inner .fi{background:rgba(56,189,248,0.12);color:#93c5fd;}
+.arch-inner .hi{background:rgba(248,113,113,0.12);color:#fca5a5;}
+
+/* BUFFER DISPLAY */
+.buf-wrap{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.buf-tok{background:#1e293b;border:1px solid #334155;border-radius:6px;padding:5px 10px;font-size:0.82rem;font-weight:700;font-family:'Courier New',monospace;}
+.buf-tok.new-tok{border-color:#4ade80;color:#4ade80;background:rgba(74,222,128,0.12);}
+.buf-tok.old-tok{color:#c084fc;border-color:#7c3aed;}
+
+/* KV CACHE */
+.kv-box{background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:10px;margin-top:10px;font-size:0.8rem;line-height:1.5;}
+.kv-title{font-weight:700;color:#38bdf8;margin-bottom:4px;}
+
+/* OVERALL GENERATION TRACKER */
+.gen-tracker{background:#060f1e;border:1px solid #1e3a5f;border-radius:8px;padding:12px;margin-top:14px;font-size:0.85rem;}
+.gen-title{color:#94a3b8;font-size:0.75rem;font-weight:700;text-transform:uppercase;margin-bottom:6px;}
+.gen-tokens{display:flex;gap:6px;flex-wrap:wrap;}
+.gen-tok{padding:4px 9px;border-radius:5px;font-weight:700;font-size:0.82rem;font-family:'Courier New',monospace;}
+.gen-tok.done{background:rgba(74,222,128,0.2);border:1px solid #4ade80;color:#4ade80;}
+.gen-tok.pending{background:rgba(255,255,255,0.04);border:1px dashed #334155;color:#334155;}
+.gen-tok.current{background:rgba(251,191,36,0.2);border:1px solid #fbbf24;color:#fbbf24;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+</style>
+</head>
+<body>
+
+<h1>🔁 Transformer Inference: Step-by-Step</h1>
+<div class="subtitle">Autoregressive text generation — Encoder runs ONCE, Decoder loops sequentially</div>
+
+<div class="trans-bar">
+  <span>📥 Source: <span class="src-label">"we are friends"</span></span>
+  <span style="color:#475569">→</span>
+  <span>📤 Target: <span class="tgt-label">&lt;SOS&gt; हम दोस्त हैं &lt;EOS&gt;</span></span>
+</div>
+
+<!-- PLAY CONTROLS -->
+<div class="controls">
+  <button class="btn-green" onclick="nextStep()">⏩ Next Step</button>
+  <button class="btn-blue" id="autoBtn" onclick="toggleAuto()">▶ Auto Play</button>
+  <button class="btn-gray" onclick="resetAll()">🔄 Reset</button>
+  <span id="stepInfo" style="color:#94a3b8;font-size:0.85rem;margin-left:8px;"></span>
+</div>
+
+<!-- ITERATION PROGRESS TABS -->
+<div class="progress-row">
+  <div class="prog-chip active" id="chip0" onclick="goToIter(0)">
+    <span class="pnum">ENCODER INIT</span>
+    <div class="pname">Encoder Runs</div>
+    <div class="psub">Caches Z_enc</div>
+  </div>
+  <div class="prog-chip" id="chip1" onclick="goToIter(1)">
+    <span class="pnum">t = 1</span>
+    <div class="pname">Iteration 1</div>
+    <div class="psub">Predicts: हम</div>
+  </div>
+  <div class="prog-chip" id="chip2" onclick="goToIter(2)">
+    <span class="pnum">t = 2</span>
+    <div class="pname">Iteration 2</div>
+    <div class="psub">Predicts: दोस्त</div>
+  </div>
+  <div class="prog-chip" id="chip3" onclick="goToIter(3)">
+    <span class="pnum">t = 3</span>
+    <div class="pname">Iteration 3</div>
+    <div class="psub">Predicts: हैं</div>
+  </div>
+  <div class="prog-chip" id="chip4" onclick="goToIter(4)">
+    <span class="pnum">t = 4</span>
+    <div class="pname">Iteration 4</div>
+    <div class="psub">Predicts: &lt;EOS&gt;</div>
+  </div>
+</div>
+
+<!-- MAIN 2-COLUMN LAYOUT -->
+<div class="main-layout">
+
+  <!-- LEFT: DYNAMIC STEP WORKSPACE -->
+  <div class="step-panel">
+    <div class="step-header">
+      <div class="step-title" id="stepTitle">Loading...</div>
+      <div class="step-badge" id="stepBadge">Step 1 of 20</div>
+    </div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="workspaceBody"></div>
+    <div class="gen-tracker">
+      <div class="gen-title">📝 Generated Output So Far</div>
+      <div class="gen-tokens" id="genTracker"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: ARCHITECTURE SIDEBAR -->
+  <div>
+    <div class="sidebar">
+      <div class="sidebar-title">Live Architecture Flow</div>
+
+      <div class="arch-box arch-enc">
+        ENCODER (Runs Once)
+        <div class="arch-inner">
+          <span>"we" → Z_enc[0]</span>
+          <span>"are" → Z_enc[1]</span>
+          <span>"friends" → Z_enc[2]</span>
+        </div>
+      </div>
+      <div class="arch-arrow">⬇</div>
+
+      <div class="arch-box arch-dec" id="archDecBox">
+        DECODER (t = 1)
+        <div class="arch-inner">
+          <span class="ai" id="arch-mask">1. Masked Self-Attention</span>
+          <span class="ci" id="arch-cross">2. Cross-Attention</span>
+          <span class="fi" id="arch-ffn">3. Feed Forward</span>
+          <span class="hi" id="arch-addnorm">4. Add &amp; Norm ×3</span>
+        </div>
+      </div>
+      <div class="arch-arrow">⬇</div>
+
+      <div class="arch-box arch-softmax">
+        LINEAR + SOFTMAX
+        <div class="arch-inner" style="color:#f9a8d4;">
+          <span style="background:rgba(244,114,182,0.12);">Logits L ∈ ℝ|V|</span>
+          <span style="background:rgba(244,114,182,0.12);">Softmax → P(w)</span>
+          <span style="background:rgba(244,114,182,0.12);" id="arch-pred">→ Predict token</span>
+        </div>
+      </div>
+
+      <div class="kv-box">
+        <div class="kv-title">⚡ KV Cache</div>
+        <span id="kvStatus" style="font-family:'Courier New';font-size:0.77rem;color:#93c5fd;">
+          Cache: empty (before t=1)
+        </span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────────────────────────────────────
+var STEPS = [
+
+  // ── ITER 0: ENCODER RUNS ONCE ──────────────────────────────────────────────
+  {
+    iter:0, sub:0,
+    title:"ENCODER: Process Source Sentence (Runs ONE Time Only)",
+    badge:"Phase 0 — Encoder",
+    kv:"Cache: empty",
+    pred:"",
+    formula:{
+      h:"🔷 The Encoder does 1 Full Forward Pass on the entire source sentence",
+      body:`All 3 source tokens are processed simultaneously in 1 forward pass.<br>
+<b>Input:</b> <code>"we"</code>, <code>"are"</code>, <code>"friends"</code> → Word Embedding Lookup<br>
+<b>Step 1:</b> Each word → Token ID → Embedding vector X_embed ∈ ℝ<sup>512</sup><br>
+<b>Step 2:</b> Add Positional Encodings: X = X_embed + PE<br>
+<b>Step 3:</b> 6 Encoder blocks each compute Self-Attention + FFNN<br>
+<b>Output:</b> Z_enc ∈ ℝ<sup>3×512</sup> — 3 contextualized vectors, 1 per source word<br>
+<b>Key fact:</b> Encoder is done. Its output Z_enc is <b>cached in GPU memory</b> and never recomputed!`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Source Token</th><th>Embedding Vector</th><th>Z_enc Output Shape</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="tok-blue">"we"</td><td>[0.82, 0.55, 0.12, 1.91, ...]</td><td>1 × 512</td><td class="tok-green">✓ Cached in Z_enc[0]</td></tr>
+          <tr><td class="tok-blue">"are"</td><td>[0.99, 1.32, -0.52, 1.33, ...]</td><td>1 × 512</td><td class="tok-green">✓ Cached in Z_enc[1]</td></tr>
+          <tr><td class="tok-blue">"friends"</td><td>[1.86, -0.54, 1.08, 1.54, ...]</td><td>1 × 512</td><td class="tok-green">✓ Cached in Z_enc[2]</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:12px;background:#060f1e;border:1px solid #1e3a5f;border-radius:8px;padding:12px;font-size:0.85rem;">
+        <span class="tok-green">Z_enc shape: 3 × 512</span><br>
+        <span style="color:#94a3b8;">This memory is passed to Cross-Attention in EVERY decoder iteration.</span>
+      </div>`
+  },
+
+  // ── ITER 1: t=1, Predicts "हम" ───────────────────────────────────────────
+  {
+    iter:1, sub:0,
+    title:"Iteration t=1 — Step 1: Decoder Input Buffer & Target Embeddings",
+    badge:"t=1 — Step 1/5",
+    kv:"Cache: [<SOS>] 1 token",
+    pred:"",
+    formula:{
+      h:"🔤 Decoder receives only <SOS> at first iteration",
+      body:`At t=1, the only known target token is the Start of Sentence token <code>&lt;SOS&gt;</code>.<br>
+<b>Input buffer Y:</b> <code>[ "&lt;SOS&gt;" ]</code> → shape <b>1 × 512</b><br>
+<b>No future tokens exist yet!</b> That is why we run the decoder sequentially, unlike training.<br>
+The embedding vector for &lt;SOS&gt; is looked up from the Target Embedding Matrix.`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Position</th><th>Token</th><th>Embedding Y Shape</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td>pos=0</td><td class="tok-green">"&lt;SOS&gt;"</td><td>1 × 512</td><td class="tok-amber">Active (newest) token</td></tr>
+        </tbody>
+      </table>`
+  },
+  {
+    iter:1, sub:1,
+    title:"Iteration t=1 — Step 2: Masked Self-Attention",
+    badge:"t=1 — Step 2/5",
+    kv:"Cache: [<SOS>] 1 token",
+    pred:"",
+    formula:{
+      h:"🛡️ Masked Self-Attention: Softmax( Q·Kᵀ / √d_k + M )",
+      body:`The Decoder computes self-attention on its own token buffer.<br>
+At t=1, only 1 token exists — so the 1×1 attention matrix is trivially 100%.<br>
+<b>Causal Mask M:</b> Upper triangle → <code>-∞</code> so Softmax gives 0% weight to future tokens.<br>
+<b>Result:</b> &lt;SOS&gt; attends to itself with 100% weight.`
+    },
+    workspace:`
+      <div class="hmap-wrap">
+        <div class="hmap" style="grid-template-columns:80px 90px;">
+          <div class="hmap-corner"></div><div class="hmap-hdr">"&lt;SOS&gt;"</div>
+          <div class="hmap-lbl">"&lt;SOS&gt;"</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.9);color:#000;">100%</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:0.82rem;color:#94a3b8;">✅ No future tokens to mask at t=1. Trivially: &lt;SOS&gt; attends to itself.</div>`
+  },
+  {
+    iter:1, sub:2,
+    title:"Iteration t=1 — Step 3: Cross-Attention with Encoder Memory Z_enc",
+    badge:"t=1 — Step 3/5",
+    kv:"Cache: [<SOS>] 1 token",
+    pred:"",
+    formula:{
+      h:"🌉 Cross-Attention: Softmax( Q_dec · K_enc^T / √d_k ) · V_enc",
+      body:`<b>Q (Query):</b> Comes from decoder token <code>&lt;SOS&gt;</code><br>
+<b>K, V (Key, Value):</b> Come from Encoder output Z_enc — i.e. <code>"we", "are", "friends"</code><br>
+This is how the decoder "reads" the source sentence at every step!<br>
+<b>Dot product:</b> Q_dec · K_enc[i]^T → raw score → apply Softmax → attention weights`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Source Word (K_enc)</th><th>Raw Dot Product Score</th><th>Softmax Weight</th><th>Interpretation</th></tr></thead>
+        <tbody>
+          <tr><td class="tok-blue">"we"</td><td>2.40</td><td class="tok-green">75%</td><td>🔥 High focus — "we" → subject</td></tr>
+          <tr><td class="tok-blue">"are"</td><td>0.48</td><td>15%</td><td>Moderate</td></tr>
+          <tr><td class="tok-blue">"friends"</td><td>0.32</td><td>10%</td><td>Low</td></tr>
+        </tbody>
+      </table>`
+  },
+  {
+    iter:1, sub:3,
+    title:"Iteration t=1 — Step 4: Linear Layer → Logits Vector L",
+    badge:"t=1 — Step 4/5",
+    kv:"Cache: [<SOS>] 1 token",
+    pred:"",
+    formula:{
+      h:"📈 Linear Projection: L = Z_dec · W_vocab + b_vocab",
+      body:`After Cross-Attention + FFNN + Add&Norm layers, we have a 512-dim decoder output vector Z_dec.<br>
+The <b>Linear Layer</b> projects this to the full Hindi vocabulary size (e.g. 50,000 tokens):<br>
+<code>L = Z_dec · W_vocab</code> where W_vocab ∈ ℝ<sup>512 × |V|</sup><br>
+L is a raw score (logit) for every word in the vocabulary. Not yet a probability!`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Vocab Token ID</th><th>Candidate Word</th><th>Raw Logit Score L</th></tr></thead>
+        <tbody>
+          <tr class="winner"><td>#402</td><td class="tok-green">"हम" (we/us)</td><td class="tok-green">+5.82 ← highest</td></tr>
+          <tr><td>#819</td><td>"दोस्त"</td><td class="tok-blue">+3.32</td></tr>
+          <tr><td>#215</td><td>"हैं"</td><td class="tok-blue">+2.38</td></tr>
+          <tr><td>#88</td><td>"मैं"</td><td class="tok-blue">+1.75</td></tr>
+          <tr><td>...</td><td>... 49,996 more words</td><td style="color:#334155;">-∞ to +2</td></tr>
+        </tbody>
+      </table>`
+  },
+  {
+    iter:1, sub:4,
+    title:"Iteration t=1 — Step 5: Softmax → Probability → Sample Token",
+    badge:"t=1 — Step 5/5",
+    kv:"Cache: [<SOS>, हम] 2 tokens",
+    pred:"हम",
+    formula:{
+      h:"🎯 Softmax: P(wᵢ) = exp(Lᵢ) / Σ exp(Lⱼ)",
+      body:`Softmax converts raw logits to a proper probability distribution summing to 1.<br>
+<b>Greedy decoding:</b> pick argmax → <b class="tok-green">"हम"</b> with 88.5%<br>
+Token <code>"हम"</code> is now appended to the decoder buffer.<br>
+→ Next iteration will start with buffer <code>[ "&lt;SOS&gt;", "हम" ]</code>`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Candidate Word</th><th>Logit L</th><th>Softmax P(w)</th><th>Decision</th></tr></thead>
+        <tbody>
+          <tr class="winner"><td class="tok-green">"हम"</td><td>+5.82</td><td class="tok-green">88.5%</td><td class="tok-green">✅ SELECTED</td></tr>
+          <tr><td>"दोस्त"</td><td>+3.32</td><td>7.2%</td><td style="color:#475569;">Discarded</td></tr>
+          <tr><td>"हैं"</td><td>+2.38</td><td>2.8%</td><td style="color:#475569;">Discarded</td></tr>
+          <tr><td>"मैं"</td><td>+1.75</td><td>1.5%</td><td style="color:#475569;">Discarded</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:12px;background:rgba(74,222,128,0.1);border:1px solid #4ade80;border-radius:8px;padding:10px;font-size:0.88rem;">
+        <b class="tok-green">→ Output at t=1: "हम"</b><br>
+        <span style="color:#94a3b8;">Buffer for t=2: [ "&lt;SOS&gt;", "हम" ]</span>
+      </div>`
+  },
+
+  // ── ITER 2: t=2, Predicts "दोस्त" ──────────────────────────────────────────
+  {
+    iter:2, sub:0,
+    title:"Iteration t=2 — Step 1: Decoder Input Buffer (2 tokens now)",
+    badge:"t=2 — Step 1/5",
+    kv:"Cache: [<SOS>, हम] 2 tokens",
+    pred:"",
+    formula:{
+      h:"🔤 Decoder buffer now has 2 tokens: [<SOS>, हम]",
+      body:`Token <code>"हम"</code> generated at t=1 is appended to the buffer.<br>
+<b>Input Y shape:</b> 2 × 512 (2 tokens, each 512-dim)<br>
+The newest (rightmost) token drives the next prediction.<br>
+Old K, V vectors from t=1 can be re-used from <b>KV Cache</b> — no recomputation needed!`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Position</th><th>Token</th><th>Shape</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>pos=0</td><td class="tok-green">"&lt;SOS&gt;"</td><td>1×512</td><td style="color:#475569;">History (KV Cached)</td></tr>
+          <tr><td>pos=1</td><td class="tok-amber">"हम"</td><td>1×512</td><td class="tok-amber">← Active (newest) token</td></tr>
+        </tbody>
+      </table>`
+  },
+  {
+    iter:2, sub:1,
+    title:"Iteration t=2 — Step 2: Masked Self-Attention (2×2 matrix)",
+    badge:"t=2 — Step 2/5",
+    kv:"Cache: [<SOS>, हम] 2 tokens",
+    pred:"",
+    formula:{
+      h:"🛡️ 2×2 Masked Attention: upper-right cell masked to -∞ (= 0%)",
+      body:`Now there are 2 tokens. Self-attention is a 2×2 matrix.<br>
+<b>Upper triangle masked:</b> "हम" at pos=1 cannot attend to pos=2+ (future) — blocked by mask M=-∞.<br>
+<b>&lt;SOS&gt;</b> can only attend to itself (pos=0).<br>
+<b>"हम"</b> can attend to &lt;SOS&gt; (45%) and itself (55%).`
+    },
+    workspace:`
+      <div class="hmap-wrap">
+        <div class="hmap" style="grid-template-columns:80px 90px 90px;">
+          <div class="hmap-corner">Q\K</div><div class="hmap-hdr">"&lt;SOS&gt;"</div><div class="hmap-hdr">"हम"</div>
+          <div class="hmap-lbl">"&lt;SOS&gt;"</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.9);color:#000;">100%</div>
+          <div class="hmap-cell hmap-mask">0% (−∞)</div>
+          <div class="hmap-lbl">"हम"</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.5);color:#fff;">45%</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.8);color:#000;">55%</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:0.8rem;color:#94a3b8;">🛡️ Top-right cell is masked: "हम" is forbidden from seeing future tokens.</div>`
+  },
+  {
+    iter:2, sub:2,
+    title:"Iteration t=2 — Step 3: Cross-Attention with Z_enc",
+    badge:"t=2 — Step 3/5",
+    kv:"Cache: [<SOS>, हम] 2 tokens",
+    pred:"",
+    formula:{
+      h:"🌉 Q_dec from 'हम' attends to K_enc, V_enc from Encoder Z_enc",
+      body:`The decoder query vector for "हम" dot-products with all 3 source word keys.<br>
+"हम" ≈ "we/us" in Hindi — so the model heavily focuses on source word <code>"we"</code>!<br>
+This cross-attention score is how the model aligns source and target language.`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Source Word (K_enc)</th><th>Dot Product</th><th>Cross-Attention Weight</th><th>Alignment</th></tr></thead>
+        <tbody>
+          <tr><td class="tok-blue">"we"</td><td>2.24</td><td class="tok-green">70%</td><td>🔥 "हम" aligns to "we" ✓</td></tr>
+          <tr><td class="tok-blue">"are"</td><td>0.48</td><td>15%</td><td>Moderate</td></tr>
+          <tr><td class="tok-blue">"friends"</td><td>0.48</td><td>15%</td><td>Moderate</td></tr>
+        </tbody>
+      </table>`
+  },
+  {
+    iter:2, sub:3,
+    title:"Iteration t=2 — Step 4: Linear Layer → Logits for next word",
+    badge:"t=2 — Step 4/5",
+    kv:"Cache: [<SOS>, हम] 2 tokens",
+    pred:"",
+    formula:{
+      h:"📈 L = Z_dec · W_vocab — Compute logits over full vocabulary",
+      body:`After processing [&lt;SOS&gt;, हम] through all decoder sub-layers, the decoder output Z_dec ∈ ℝ<sup>512</sup> is projected to vocabulary size.<br>
+Given context "हम" follows "we" in meaning, the model now predicts a noun that completes the phrase.`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Vocab Token</th><th>Candidate Word</th><th>Raw Logit L</th></tr></thead>
+        <tbody>
+          <tr class="winner"><td>#819</td><td class="tok-green">"दोस्त" (friends)</td><td class="tok-green">+6.15 ← highest</td></tr>
+          <tr><td>#215</td><td>"हैं"</td><td class="tok-blue">+3.32</td></tr>
+          <tr><td>#402</td><td>"हम"</td><td class="tok-blue">+2.38</td></tr>
+          <tr><td>#1042</td><td>"मित्र"</td><td class="tok-blue">+1.88</td></tr>
+        </tbody>
+      </table>`
+  },
+  {
+    iter:2, sub:4,
+    title:"Iteration t=2 — Step 5: Softmax → Sample → Output 'दोस्त'",
+    badge:"t=2 — Step 5/5",
+    kv:"Cache: [<SOS>, हम, दोस्त] 3 tokens",
+    pred:"दोस्त",
+    formula:{
+      h:"🎯 Softmax → argmax → 'दोस्त' selected with 91.2% probability",
+      body:`<b>Greedy decoding</b> picks the highest probability token.<br>
+Token <code>"दोस्त"</code> = "friends" in Hindi — correct alignment!<br>
+Buffer for t=3: <code>[ "&lt;SOS&gt;", "हम", "दोस्त" ]</code>`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Candidate Word</th><th>Softmax P(w)</th><th>Decision</th></tr></thead>
+        <tbody>
+          <tr class="winner"><td class="tok-green">"दोस्त"</td><td class="tok-green">91.2%</td><td class="tok-green">✅ SELECTED</td></tr>
+          <tr><td>"हैं"</td><td>5.4%</td><td style="color:#475569;">Discarded</td></tr>
+          <tr><td>"हम"</td><td>2.1%</td><td style="color:#475569;">Discarded</td></tr>
+          <tr><td>"मित्र"</td><td>1.3%</td><td style="color:#475569;">Discarded</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:12px;background:rgba(74,222,128,0.1);border:1px solid #4ade80;border-radius:8px;padding:10px;font-size:0.88rem;">
+        <b class="tok-green">→ Output at t=2: "दोस्त"</b><br>
+        <span style="color:#94a3b8;">Buffer for t=3: [ "&lt;SOS&gt;", "हम", "दोस्त" ]</span>
+      </div>`
+  },
+
+  // ── ITER 3: t=3, Predicts "हैं" ──────────────────────────────────────────
+  {
+    iter:3, sub:0,
+    title:"Iteration t=3 — Step 1: Buffer is now 3 tokens",
+    badge:"t=3 — Step 1/5",
+    kv:"Cache: [<SOS>, हम, दोस्त] 3 tokens",
+    pred:"",
+    formula:{
+      h:"🔤 Buffer: [<SOS>, हम, दोस्त] — shape: 3 × 512",
+      body:`At t=3, we have accumulated 3 tokens.<br>
+K, V from t=1 and t=2 are reused from <b>KV Cache</b> — only the new token "दोस्त" needs fresh K, V computation.<br>
+This is why KV Caching speeds up inference significantly!`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Position</th><th>Token</th><th>KV Status</th></tr></thead>
+        <tbody>
+          <tr><td>pos=0</td><td class="tok-green">"&lt;SOS&gt;"</td><td style="color:#475569;">✓ KV Cached (from t=1)</td></tr>
+          <tr><td>pos=1</td><td class="tok-green">"हम"</td><td style="color:#475569;">✓ KV Cached (from t=2)</td></tr>
+          <tr><td>pos=2</td><td class="tok-amber">"दोस्त"</td><td class="tok-amber">← NEW — compute K, V now</td></tr>
+        </tbody>
+      </table>`
+  },
+  {
+    iter:3, sub:1,
+    title:"Iteration t=3 — Step 2: Masked Self-Attention (3×3 matrix)",
+    badge:"t=3 — Step 2/5",
+    kv:"Cache: [<SOS>, हम, दोस्त] 3 tokens",
+    pred:"",
+    formula:{
+      h:"🛡️ 3×3 Masked Self-Attention — upper triangle = 0%",
+      body:`Causal mask blocks all upper-right cells.<br>
+"दोस्त" (pos=2) can attend to pos=0,1,2 — but not to any future positions.<br>
+"हम" (pos=1) can only attend to pos=0,1.<br>
+"&lt;SOS&gt;" (pos=0) can only attend to pos=0.`
+    },
+    workspace:`
+      <div class="hmap-wrap">
+        <div class="hmap" style="grid-template-columns:80px 80px 80px 90px;">
+          <div class="hmap-corner">Q\K</div><div class="hmap-hdr">"&lt;SOS&gt;"</div><div class="hmap-hdr">"हम"</div><div class="hmap-hdr">"दोस्त"</div>
+          <div class="hmap-lbl">"&lt;SOS&gt;"</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.9);color:#000;">100%</div>
+          <div class="hmap-cell hmap-mask">0%</div><div class="hmap-cell hmap-mask">0%</div>
+          <div class="hmap-lbl">"हम"</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.5);color:#fff;">40%</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.8);color:#000;">60%</div>
+          <div class="hmap-cell hmap-mask">0%</div>
+          <div class="hmap-lbl">"दोस्त"</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.35);color:#fff;">25%</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.6);color:#000;">45%</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.45);color:#fff;">30%</div>
+        </div>
+      </div>`
+  },
+  {
+    iter:3, sub:2,
+    title:"Iteration t=3 — Step 3: Cross-Attention — 'दोस्त' aligns to 'are'",
+    badge:"t=3 — Step 3/5",
+    kv:"Cache: [<SOS>, हम, दोस्त] 3 tokens",
+    pred:"",
+    formula:{
+      h:"🌉 Q from 'दोस्त' cross-attends to source Z_enc",
+      body:`The decoder query for "दोस्त" (friends) strongly aligns with source word "friends".<br>
+But for predicting the next word "हैं" (are/is), it also reads the verb "are" from the source.<br>
+Cross-attention dynamically determines where to look in the source sentence!`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Source Word (K_enc)</th><th>Dot Product</th><th>Cross-Attention Weight</th><th>Alignment</th></tr></thead>
+        <tbody>
+          <tr><td class="tok-blue">"we"</td><td>0.48</td><td>15%</td><td>Low</td></tr>
+          <tr><td class="tok-blue">"are"</td><td>2.40</td><td class="tok-green">75%</td><td>🔥 "हैं" verb alignment ✓</td></tr>
+          <tr><td class="tok-blue">"friends"</td><td>0.32</td><td>10%</td><td>Low</td></tr>
+        </tbody>
+      </table>`
+  },
+  {
+    iter:3, sub:3,
+    title:"Iteration t=3 — Step 4: Linear Layer → Logits",
+    badge:"t=3 — Step 4/5",
+    kv:"Cache: [<SOS>, हम, दोस्त] 3 tokens",
+    pred:"",
+    formula:{
+      h:"📈 Logits suggest the verb 'हैं' is next",
+      body:`Context so far: "हम दोस्त ___" — we need a verb to complete the sentence.<br>
+"हैं" = plural copula verb "are" in Hindi.<br>
+L["हैं"] = +6.55 is the highest logit.`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Candidate Word</th><th>Raw Logit L</th></tr></thead>
+        <tbody>
+          <tr class="winner"><td class="tok-green">"हैं" (are/is)</td><td class="tok-green">+6.55 ← highest</td></tr>
+          <tr><td>"हो"</td><td class="tok-blue">+3.12</td></tr>
+          <tr><td>"दोस्त"</td><td class="tok-blue">+2.30</td></tr>
+          <tr><td>"&lt;EOS&gt;"</td><td class="tok-blue">+1.72</td></tr>
+        </tbody>
+      </table>`
+  },
+  {
+    iter:3, sub:4,
+    title:"Iteration t=3 — Step 5: Softmax → Output 'हैं'",
+    badge:"t=3 — Step 5/5",
+    kv:"Cache: [<SOS>, हम, दोस्त, हैं] 4 tokens",
+    pred:"हैं",
+    formula:{
+      h:"🎯 Softmax → argmax → 'हैं' with 94.6%",
+      body:`"हैं" selected. Translation is now "हम दोस्त हैं" which is the complete sentence!<br>
+Buffer for t=4: <code>[ "&lt;SOS&gt;", "हम", "दोस्त", "हैं" ]</code>`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Candidate Word</th><th>Softmax P(w)</th><th>Decision</th></tr></thead>
+        <tbody>
+          <tr class="winner"><td class="tok-green">"हैं"</td><td class="tok-green">94.6%</td><td class="tok-green">✅ SELECTED</td></tr>
+          <tr><td>"हो"</td><td>3.2%</td><td style="color:#475569;">Discarded</td></tr>
+          <tr><td>"दोस्त"</td><td>1.4%</td><td style="color:#475569;">Discarded</td></tr>
+          <tr><td>"&lt;EOS&gt;"</td><td>0.8%</td><td style="color:#475569;">Discarded</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:12px;background:rgba(74,222,128,0.1);border:1px solid #4ade80;border-radius:8px;padding:10px;">
+        <b class="tok-green">→ Output at t=3: "हैं"</b><br>
+        <span style="color:#94a3b8;">Buffer for t=4: [ "&lt;SOS&gt;", "हम", "दोस्त", "हैं" ]</span>
+      </div>`
+  },
+
+  // ── ITER 4: t=4, Predicts <EOS> ──────────────────────────────────────────
+  {
+    iter:4, sub:0,
+    title:"Iteration t=4 — Step 1: Buffer is now 4 tokens",
+    badge:"t=4 — Step 1/5",
+    kv:"Cache: [<SOS>, हम, दोस्त, हैं] 4 tokens",
+    pred:"",
+    formula:{
+      h:"🔤 Buffer: [<SOS>, हम, दोस्त, हैं] — shape: 4 × 512",
+      body:`Complete Hindi translation "हम दोस्त हैं" is now in the buffer.<br>
+The model needs to decide: should it continue or stop?<br>
+This is determined by whether <code>&lt;EOS&gt;</code> (End of Sentence) gets the highest probability.`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Position</th><th>Token</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>pos=0</td><td class="tok-green">"&lt;SOS&gt;"</td><td style="color:#475569;">KV Cached</td></tr>
+          <tr><td>pos=1</td><td class="tok-green">"हम"</td><td style="color:#475569;">KV Cached</td></tr>
+          <tr><td>pos=2</td><td class="tok-green">"दोस्त"</td><td style="color:#475569;">KV Cached</td></tr>
+          <tr><td>pos=3</td><td class="tok-amber">"हैं"</td><td class="tok-amber">← Active (newest)</td></tr>
+        </tbody>
+      </table>`
+  },
+  {
+    iter:4, sub:1,
+    title:"Iteration t=4 — Step 2: Masked Self-Attention (4×4 matrix)",
+    badge:"t=4 — Step 2/5",
+    kv:"Cache: [<SOS>, हम, दोस्त, हैं] 4 tokens",
+    pred:"",
+    formula:{
+      h:"🛡️ 4×4 Masked Attention — only lower-left triangle is visible",
+      body:`"हैं" (pos=3) can attend to all 4 positions (0,1,2,3).<br>
+Upper triangle (future positions) remain masked at 0%.<br>
+At inference, there are no true future tokens — but the mask is still applied for consistency.`
+    },
+    workspace:`
+      <div class="hmap-wrap">
+        <div class="hmap" style="grid-template-columns:75px 70px 70px 70px 80px;">
+          <div class="hmap-corner">Q\K</div>
+          <div class="hmap-hdr">"&lt;SOS&gt;"</div><div class="hmap-hdr">"हम"</div><div class="hmap-hdr">"दोस्त"</div><div class="hmap-hdr">"हैं"</div>
+          <div class="hmap-lbl">"&lt;SOS&gt;"</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.9);color:#000;font-size:0.72rem;">100%</div>
+          <div class="hmap-cell hmap-mask" style="font-size:0.7rem;">0%</div><div class="hmap-cell hmap-mask" style="font-size:0.7rem;">0%</div><div class="hmap-cell hmap-mask" style="font-size:0.7rem;">0%</div>
+          <div class="hmap-lbl">"हम"</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.4);color:#fff;font-size:0.72rem;">35%</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.8);color:#000;font-size:0.72rem;">65%</div>
+          <div class="hmap-cell hmap-mask" style="font-size:0.7rem;">0%</div><div class="hmap-cell hmap-mask" style="font-size:0.7rem;">0%</div>
+          <div class="hmap-lbl">"दोस्त"</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.3);color:#fff;font-size:0.72rem;">20%</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.6);color:#000;font-size:0.72rem;">50%</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.4);color:#fff;font-size:0.72rem;">30%</div>
+          <div class="hmap-cell hmap-mask" style="font-size:0.7rem;">0%</div>
+          <div class="hmap-lbl">"हैं"</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.2);color:#fff;font-size:0.72rem;">15%</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.4);color:#fff;font-size:0.72rem;">35%</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.4);color:#fff;font-size:0.72rem;">35%</div>
+          <div class="hmap-cell" style="background:rgba(251,191,36,0.2);color:#fff;font-size:0.72rem;">15%</div>
+        </div>
+      </div>`
+  },
+  {
+    iter:4, sub:2,
+    title:"Iteration t=4 — Step 3: Cross-Attention — 'हैं' aligns with 'friends'",
+    badge:"t=4 — Step 3/5",
+    kv:"Cache: [<SOS>, हम, दोस्त, हैं] 4 tokens",
+    pred:"",
+    formula:{
+      h:"🌉 Q from 'हैं' cross-attends to full source Z_enc",
+      body:`At this point, the translation "हम दोस्त हैं" is nearly complete.<br>
+The decoder checks the source again — and now "friends" gets highest attention as the last meaningful word.<br>
+This helps the model predict end of sentence &lt;EOS&gt;.`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Source Word</th><th>Dot Product</th><th>Cross-Attention Weight</th><th>Alignment</th></tr></thead>
+        <tbody>
+          <tr><td class="tok-blue">"we"</td><td>0.32</td><td>10%</td><td>Low</td></tr>
+          <tr><td class="tok-blue">"are"</td><td>0.64</td><td>20%</td><td>Moderate</td></tr>
+          <tr><td class="tok-blue">"friends"</td><td>2.24</td><td class="tok-green">70%</td><td>🔥 Sentence end signal</td></tr>
+        </tbody>
+      </table>`
+  },
+  {
+    iter:4, sub:3,
+    title:"Iteration t=4 — Step 4: Linear Layer → <EOS> gets highest logit",
+    badge:"t=4 — Step 4/5",
+    kv:"Cache: [<SOS>, हम, दोस्त, हैं] 4 tokens",
+    pred:"",
+    formula:{
+      h:"📈 L[<EOS>] = +7.10 — highest logit. Sentence is complete!",
+      body:`The model has seen the full source sequence and translated it completely.<br>
+<code>&lt;EOS&gt;</code> (End of Sentence) token gets the highest raw logit score.<br>
+Once selected, the inference loop terminates!`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Candidate Word</th><th>Raw Logit L</th></tr></thead>
+        <tbody>
+          <tr class="winner"><td class="tok-red">"&lt;EOS&gt;" ← STOP!</td><td class="tok-red">+7.10 ← highest</td></tr>
+          <tr><td>"हैं"</td><td class="tok-blue">+2.85</td></tr>
+          <tr><td>"."</td><td class="tok-blue">+1.80</td></tr>
+          <tr><td>"!"</td><td class="tok-blue">+1.25</td></tr>
+        </tbody>
+      </table>`
+  },
+  {
+    iter:4, sub:4,
+    title:"Iteration t=4 — Step 5: <EOS> Selected → INFERENCE COMPLETE! 🎉",
+    badge:"t=4 — Step 5/5 — DONE!",
+    kv:"DONE. Final output: हम दोस्त हैं",
+    pred:"<EOS>",
+    formula:{
+      h:"🏁 <EOS> predicted with 97.8% — Loop Terminates!",
+      body:`<code>&lt;EOS&gt;</code> = End of Sentence token.<br>
+When the model outputs &lt;EOS&gt;, the <b>autoregressive loop stops immediately</b>.<br>
+<b>Final Translation Output:</b> <span style="color:#4ade80;font-size:1rem;">"हम दोस्त हैं"</span><br>
+<span style="color:#94a3b8;">Which means: "We are friends" ✓</span>`
+    },
+    workspace:`
+      <table class="data-table">
+        <thead><tr><th>Candidate Word</th><th>Softmax P(w)</th><th>Decision</th></tr></thead>
+        <tbody>
+          <tr class="winner"><td class="tok-red">"&lt;EOS&gt;"</td><td class="tok-red">97.8%</td><td class="tok-red">🛑 STOP — loop ends</td></tr>
+          <tr><td>"हैं"</td><td>1.4%</td><td style="color:#475569;">Discarded</td></tr>
+          <tr><td>"."</td><td>0.5%</td><td style="color:#475569;">Discarded</td></tr>
+          <tr><td>"!"</td><td>0.3%</td><td style="color:#475569;">Discarded</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:14px;background:rgba(74,222,128,0.12);border:2px solid #4ade80;border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:1.2rem;font-weight:800;color:#4ade80;margin-bottom:6px;">🎉 Inference Complete!</div>
+        <div style="font-size:1rem;color:#fff;">"we are friends" → <span style="color:#4ade80;font-weight:800;">"हम दोस्त हैं"</span></div>
+        <div style="font-size:0.82rem;color:#94a3b8;margin-top:6px;">4 Decoder iterations · Encoder ran once · Z_enc cached throughout</div>
+      </div>`
+  }
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+var currentStep = 0;
+var autoInterval = null;
+
+// GEN TRACKER CONFIG
+var genTokens = ["हम","दोस्त","हैं","<EOS>"];
+var genByIter  = [1,2,3,4]; // which iter index produces each gen token
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────────────────────────────────────
+function render() {
+  var s = STEPS[currentStep];
+  if (!s) return;
+
+  // Main content
+  document.getElementById('stepTitle').innerHTML = s.title;
+  document.getElementById('stepBadge').innerHTML = s.badge;
+  document.getElementById('formulaBox').innerHTML = '<h4>' + s.formula.h + '</h4>' + s.formula.body;
+  document.getElementById('workspaceBody').innerHTML = s.workspace;
+
+  // KV cache
+  document.getElementById('kvStatus').innerHTML = s.kv;
+  document.getElementById('arch-pred').innerHTML = s.pred ? '→ "' + s.pred + '" selected' : '→ Predict token';
+
+  // SVG highlight: reset all
+  var nodeIds = ['arch-mask','arch-cross','arch-ffn','arch-addnorm'];
+  nodeIds.forEach(function(id) {
+    document.getElementById(id).style.opacity = '0.5';
+  });
+  // Highlight based on sub
+  var subHighlights = ['arch-mask','arch-mask','arch-cross','arch-ffn','arch-addnorm'];
+  if (s.sub >= 0 && s.sub < subHighlights.length) {
+    document.getElementById(subHighlights[s.sub]).style.opacity = '1';
+  }
+
+  // Decoder box label
+  document.getElementById('archDecBox').childNodes[0].textContent = 'DECODER (t = ' + (s.iter || 1) + ')';
+
+  // Iteration chip highlight
+  for (var i = 0; i <= 4; i++) {
+    var chip = document.getElementById('chip'+i);
+    if (chip) chip.classList.remove('active');
+  }
+  var activeChip = document.getElementById('chip' + s.iter);
+  if (activeChip) activeChip.classList.add('active');
+
+  // Sub-step buttons
+  for (var i = 0; i <= 4; i++) {
+    var btn = document.getElementById('sub-btn-'+i);
+    if (btn) {
+      btn.classList.remove('active');
+      if (i === s.sub) btn.classList.add('active');
+    }
+  }
+
+  // Step info
+  document.getElementById('stepInfo').innerHTML = 'Step ' + (currentStep+1) + ' of ' + STEPS.length;
+
+  // Generation tracker
+  renderGenTracker(s.iter);
+}
+
+function renderGenTracker(curIter) {
+  var html = '';
+  // EOS always present as pending or done
+  var labels = ['हम','दोस्त','हैं','<EOS>'];
+  var doneByIter = [1,2,3,4];
+  for (var i = 0; i < labels.length; i++) {
+    var cls, lbl = labels[i];
+    if (curIter > doneByIter[i]) {
+      cls = 'done';
+    } else if (curIter === doneByIter[i]) {
+      cls = 'current';
+    } else {
+      cls = 'pending';
+    }
+    html += '<div class="gen-tok ' + cls + '">' + lbl + '</div>';
+  }
+  document.getElementById('genTracker').innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────────────────────────────────────
+function nextStep() {
+  if (currentStep < STEPS.length - 1) {
+    currentStep++;
+  } else {
+    currentStep = 0; // loop
+  }
+  render();
+}
+
+function goToIter(iterIdx) {
+  // find the first step that belongs to this iter
+  for (var i = 0; i < STEPS.length; i++) {
+    if (STEPS[i].iter === iterIdx) {
+      currentStep = i;
+      break;
+    }
+  }
+  render();
+}
+
+function toggleAuto() {
+  if (autoInterval) {
+    clearInterval(autoInterval);
+    autoInterval = null;
+    document.getElementById('autoBtn').innerHTML = '▶ Auto Play';
+  } else {
+    autoInterval = setInterval(function() {
+      if (currentStep >= STEPS.length - 1) {
+        clearInterval(autoInterval);
+        autoInterval = null;
+        document.getElementById('autoBtn').innerHTML = '▶ Auto Play';
+      } else {
+        currentStep++;
+        render();
+      }
+    }, 1500);
+    document.getElementById('autoBtn').innerHTML = '⏸ Pause';
+  }
+}
+
+function resetAll() {
+  if (autoInterval) {
+    clearInterval(autoInterval);
+    autoInterval = null;
+    document.getElementById('autoBtn').innerHTML = '▶ Auto Play';
+  }
+  currentStep = 0;
+  render();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT — run render() immediately (no DOMContentLoaded needed, script is at end)
+// ─────────────────────────────────────────────────────────────────────────────
+render();
+</script>
+
+</body>
+</html>

@@ -6,7 +6,7 @@ from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 load_dotenv()
 
 llm = HuggingFaceEndpoint(
-    repo_id="TinyLlama/TinyLlama-1.1B-Chat-v1.0", # this model does not support structured output.
+    repo_id="TinyLlama/TinyLlama-1.1B-Chat-v1.0", # this model does not support structured output. & that's why Output Parser Exists.
     task="text-generation"
 )
 

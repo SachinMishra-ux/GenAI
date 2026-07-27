@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transformer Training: Full Pipeline Masterclass</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#07101e;color:#f0f4ff;font-family:Arial,sans-serif;padding:20px;}
+h1{font-size:1.8rem;color:#fff;text-align:center;margin-bottom:6px;}
+.subtitle{text-align:center;color:#94a3b8;font-size:0.95rem;margin-bottom:20px;}
+
+.trans-bar{display:flex;justify-content:center;align-items:center;gap:14px;background:#101c30;border:1px solid #1e3a5f;padding:10px 20px;border-radius:30px;margin:0 auto 24px auto;width:fit-content;font-size:0.9rem;font-weight:600;flex-wrap:wrap;}
+.lbl-enc{color:#38bdf8;} .lbl-dec-in{color:#c084fc;} .lbl-dec-out{color:#4ade80;}
+
+/* CONTROLS */
+.controls{background:#0f1e35;border:1px solid #1e3a5f;border-radius:12px;padding:14px 18px;margin-bottom:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+button{cursor:pointer;border:none;border-radius:8px;font-size:0.88rem;font-weight:700;padding:10px 16px;transition:transform 0.1s;}
+button:active{transform:scale(0.97);}
+.btn-amber{background:linear-gradient(135deg,#f59e0b,#b45309);color:#fff;box-shadow:0 4px 12px rgba(245,158,11,0.3);}
+.btn-blue{background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;box-shadow:0 4px 12px rgba(14,165,233,0.3);}
+.btn-gray{background:#1e293b;color:#cbd5e1;border:1px solid #334155;}
+#stepInfo{color:#94a3b8;font-size:0.85rem;margin-left:6px;}
+
+/* PHASE CHIPS */
+.phase-row{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.phase-chip{flex:1;min-width:130px;background:#0f1e35;border:1px solid #1e3a5f;border-radius:8px;padding:9px 7px;text-align:center;font-size:0.77rem;cursor:pointer;transition:all 0.2s;}
+.phase-chip:hover{border-color:#fbbf24;}
+.phase-chip.active{border-color:#fbbf24;background:rgba(251,191,36,0.1);box-shadow:0 0 12px rgba(251,191,36,0.2);}
+.phase-chip .pnum{display:block;font-size:0.64rem;color:#fbbf24;font-weight:800;margin-bottom:3px;}
+.phase-chip .pname{font-weight:700;color:#fff;font-size:0.8rem;}
+.phase-chip .psub{font-size:0.69rem;color:#94a3b8;margin-top:2px;}
+
+/* MAIN LAYOUT */
+.main-layout{display:grid;grid-template-columns:1fr 295px;gap:16px;}
+@media(max-width:900px){.main-layout{grid-template-columns:1fr;}}
+
+/* STEP PANEL */
+.step-panel{background:#0f1e35;border:1px solid #1e3a5f;border-radius:12px;padding:20px;}
+.step-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:8px;flex-wrap:wrap;}
+.step-title{font-size:1.05rem;font-weight:700;color:#fbbf24;flex:1;}
+.step-badge{background:#0f2940;border:1px solid #b45309;color:#fbbf24;font-size:0.73rem;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;}
+
+/* FORMULA BOX */
+.formula-box{background:#060f1e;border:1px solid #1e3a5f;border-left:4px solid #fbbf24;border-radius:8px;padding:14px;margin-bottom:14px;font-size:0.86rem;line-height:1.7;}
+.formula-box h4{color:#fbbf24;font-size:0.91rem;margin-bottom:7px;}
+code{background:#1e293b;padding:2px 6px;border-radius:4px;font-family:'Courier New',monospace;font-size:0.82rem;color:#a5f3fc;}
+
+/* TABLES */
+.data-table{width:100%;border-collapse:collapse;font-size:0.83rem;}
+.data-table th{text-align:left;padding:7px 9px;background:#060f1e;color:#94a3b8;border-bottom:1px solid #1e3a5f;}
+.data-table td{padding:8px 9px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:top;}
+.data-table tr.win{background:rgba(74,222,128,0.09);}
+.data-table tr.loss-row{background:rgba(251,191,36,0.08);}
+.tok-g{color:#4ade80;font-weight:700;}
+.tok-b{color:#38bdf8;font-weight:700;}
+.tok-a{color:#fbbf24;font-weight:700;}
+.tok-p{color:#c084fc;font-weight:700;}
+.tok-r{color:#f87171;font-weight:700;}
+
+/* HEATMAP */
+.hmap-wrap{overflow-x:auto;margin:8px 0;}
+.hmap{display:inline-grid;gap:4px;align-items:center;}
+.hc{padding:8px 6px;border-radius:5px;text-align:center;font-weight:700;font-size:0.78rem;min-width:65px;}
+.hc-mask{background:rgba(248,113,113,0.14);color:#f87171;border:1px dashed rgba(248,113,113,0.35);text-decoration:line-through;}
+.hl{font-weight:700;color:#c084fc;text-align:right;padding-right:8px;font-size:0.78rem;}
+.hh{color:#94a3b8;text-align:center;font-size:0.72rem;font-weight:700;}
+
+/* GRADIENT FLOW */
+.grad-flow{display:flex;flex-direction:column;gap:5px;margin-top:10px;}
+.gf-row{display:grid;grid-template-columns:160px 1fr 120px;gap:8px;align-items:center;padding:6px 10px;border-radius:6px;background:#060f1e;border:1px solid #1e3a5f;font-size:0.82rem;}
+.gf-name{font-weight:700;color:#c084fc;}
+.gf-bar-bg{height:14px;background:#1e293b;border-radius:3px;overflow:hidden;}
+.gf-bar{height:100%;border-radius:3px;}
+.gf-val{font-family:'Courier New',monospace;font-size:0.79rem;text-align:right;}
+
+/* WEIGHT UPDATE */
+.wu-box{background:#060f1e;border:1px solid #1e3a5f;border-radius:8px;padding:12px;margin-top:8px;font-family:'Courier New',monospace;font-size:0.82rem;line-height:1.8;}
+.wu-before{color:#f87171;}
+.wu-after{color:#4ade80;}
+.wu-formula{color:#fbbf24;}
+
+/* SIDEBAR */
+.sidebar{display:flex;flex-direction:column;gap:12px;}
+.sb-card{background:#0f1e35;border:1px solid #1e3a5f;border-radius:10px;padding:14px;}
+.sb-title{font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8;margin-bottom:10px;}
+.pipeline-item{padding:8px 10px;border-radius:7px;margin-bottom:6px;font-size:0.8rem;font-weight:700;border:1.5px solid transparent;}
+.pi-enc{background:rgba(56,189,248,0.1);border-color:#38bdf8;color:#38bdf8;}
+.pi-decm{background:rgba(251,191,36,0.1);border-color:#fbbf24;color:#fbbf24;}
+.pi-decc{background:rgba(74,222,128,0.1);border-color:#4ade80;color:#4ade80;}
+.pi-loss{background:rgba(248,113,113,0.1);border-color:#f87171;color:#f87171;}
+.pi-back{background:rgba(192,132,252,0.1);border-color:#c084fc;color:#c084fc;}
+.pi-upd{background:rgba(245,158,11,0.1);border-color:#f59e0b;color:#f59e0b;}
+.pi-sub{font-size:0.72rem;color:#94a3b8;font-weight:400;margin-top:2px;}
+.pipeline-item.active-pi{box-shadow:0 0 14px rgba(255,255,255,0.15);transform:scale(1.01);}
+
+/* TEACHER FORCING BOX */
+.tf-box{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+.tf-col{background:#060f1e;border:1px solid #1e3a5f;border-radius:7px;padding:10px;}
+.tf-label{font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;}
+.tf-token{display:inline-block;padding:3px 8px;border-radius:5px;font-size:0.8rem;font-weight:700;margin:2px;font-family:'Courier New',monospace;}
+.tf-src{background:rgba(56,189,248,0.15);border:1px solid #38bdf8;color:#38bdf8;}
+.tf-tgt{background:rgba(192,132,252,0.15);border:1px solid #c084fc;color:#c084fc;}
+.tf-out{background:rgba(74,222,128,0.15);border:1px solid #4ade80;color:#4ade80;}
+
+/* LOSS DISPLAY */
+.loss-display{background:#060f1e;border:1px solid #1e3a5f;border-radius:8px;padding:10px;margin-top:8px;text-align:center;}
+.loss-val{font-size:1.4rem;font-weight:800;color:#fbbf24;font-family:'Courier New',monospace;}
+.loss-label{font-size:0.72rem;color:#94a3b8;margin-top:3px;}
+
+/* PARALLEL NOTE */
+.parallel-note{background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.3);border-radius:7px;padding:10px;margin-top:10px;font-size:0.83rem;line-height:1.5;}
+</style>
+</head>
+<body>
+
+<h1>🏋️ Transformer Training: Full Forward + Backprop Pipeline</h1>
+<div class="subtitle">How "we are friends" → "हम दोस्त हैं" is learned step by step with complete math</div>
+
+<div class="trans-bar">
+  <span>📥 Encoder Input: <span class="lbl-enc">"we / are / friends"</span></span>
+  <span style="color:#475569">|</span>
+  <span>📥 Decoder Input: <span class="lbl-dec-in">&lt;SOS&gt; / हम / दोस्त / हैं</span> (shifted right)</span>
+  <span style="color:#475569">|</span>
+  <span>🎯 Target Labels: <span class="lbl-dec-out">हम / दोस्त / हैं / &lt;EOS&gt;</span></span>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <button class="btn-amber" onclick="nextStep()">⏩ Next Step</button>
+  <button class="btn-blue" id="autoBtn" onclick="toggleAuto()">▶ Auto Play</button>
+  <button class="btn-gray" onclick="resetAll()">🔄 Reset</button>
+  <span id="stepInfo"></span>
+</div>
+
+<!-- PHASE CHIPS -->
+<div class="phase-row">
+  <div class="phase-chip" id="chip0" onclick="goToPhase(0)">
+    <span class="pnum">PHASE 0</span>
+    <div class="pname">Data Setup</div>
+    <div class="psub">Teacher Forcing</div>
+  </div>
+  <div class="phase-chip" id="chip1" onclick="goToPhase(1)">
+    <span class="pnum">PHASE 1</span>
+    <div class="pname">Encoder Fwd</div>
+    <div class="psub">Z_enc output</div>
+  </div>
+  <div class="phase-chip" id="chip2" onclick="goToPhase(2)">
+    <span class="pnum">PHASE 2</span>
+    <div class="pname">Decoder Fwd</div>
+    <div class="psub">Masked + Cross Attn</div>
+  </div>
+  <div class="phase-chip" id="chip3" onclick="goToPhase(3)">
+    <span class="pnum">PHASE 3</span>
+    <div class="pname">Loss Calc</div>
+    <div class="psub">Cross-Entropy</div>
+  </div>
+  <div class="phase-chip" id="chip4" onclick="goToPhase(4)">
+    <span class="pnum">PHASE 4</span>
+    <div class="pname">Backprop</div>
+    <div class="psub">Chain Rule</div>
+  </div>
+  <div class="phase-chip" id="chip5" onclick="goToPhase(5)">
+    <span class="pnum">PHASE 5</span>
+    <div class="pname">Weight Update</div>
+    <div class="psub">Adam / SGD</div>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+
+  <!-- LEFT: DYNAMIC WORKSPACE -->
+  <div class="step-panel">
+    <div class="step-header">
+      <div class="step-title" id="stepTitle">Loading...</div>
+      <div class="step-badge" id="stepBadge">Step 0</div>
+    </div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="workspaceBody"></div>
+  </div>
+
+  <!-- RIGHT: SIDEBAR -->
+  <div class="sidebar">
+    <!-- Training Pipeline tracker -->
+    <div class="sb-card">
+      <div class="sb-title">Training Pipeline Flow</div>
+      <div class="pipeline-item pi-enc" id="pi-0">
+        ENCODER FORWARD PASS
+        <div class="pi-sub">Self-Attn → FFNN → Z_enc</div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:1rem;">⬇</div>
+      <div class="pipeline-item pi-decm" id="pi-1">
+        DECODER: MASKED SELF-ATTN
+        <div class="pi-sub">Causal mask — no future peeking</div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:1rem;">⬇</div>
+      <div class="pipeline-item pi-decc" id="pi-2">
+        DECODER: CROSS-ATTENTION
+        <div class="pi-sub">Q_dec · K_enc — reads source</div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:1rem;">⬇</div>
+      <div class="pipeline-item pi-loss" id="pi-3">
+        LOSS: CROSS-ENTROPY
+        <div class="pi-sub">Compare pred vs true label</div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:1rem;">⬇</div>
+      <div class="pipeline-item pi-back" id="pi-4">
+        BACKPROPAGATION
+        <div class="pi-sub">∂L/∂W via chain rule</div>
+      </div>
+      <div style="text-align:center;color:#475569;font-size:1rem;">⬇</div>
+      <div class="pipeline-item pi-upd" id="pi-5">
+        WEIGHT UPDATE (ADAM)
+        <div class="pi-sub">W ← W − lr · ∂L/∂W</div>
+      </div>
+    </div>
+
+    <!-- Live loss display -->
+    <div class="sb-card">
+      <div class="sb-title">Live Training Loss</div>
+      <div class="loss-display">
+        <div class="loss-val" id="sb-loss">–</div>
+        <div class="loss-label" id="sb-loss-label">Not computed yet</div>
+      </div>
+      <div style="margin-top:10px;font-size:0.78rem;color:#94a3b8;line-height:1.5;">
+        <b style="color:#fbbf24;">Key:</b> Loss decreases each training step as weights are updated. Over thousands of steps the model learns to correctly translate.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// ALL STEPS DATA
+// ─────────────────────────────────────────────────────────────────────────────
+var STEPS = [
+
+// ═══════════════════════════════════════════════════════════════════
+// PHASE 0: DATA SETUP & TEACHER FORCING
+// ═══════════════════════════════════════════════════════════════════
+{
+  phase:0, phaseLabel:"PHASE 0 — Data Setup",
+  title:"Phase 0 — Step 1: Prepare Training Pair (Teacher Forcing Setup)",
+  badge:"Phase 0 — Step 1/3",
+  loss:"–", lossLabel:"Not computed yet",
+  piActive: -1,
+  formula:{
+    h:"📦 What is Teacher Forcing? — Why do we feed the FULL sentence at once?",
+    body:`At training time, we already know the correct translation!<br>
+So we feed the <b>entire source sentence</b> to the Encoder and the <b>entire shifted-right target</b> to the Decoder — all at once, in a <b>single forward pass</b>.<br><br>
+<b>Encoder receives:</b> <code>"we"</code>, <code>"are"</code>, <code>"friends"</code> (all 3 at once)<br>
+<b>Decoder receives (INPUT):</b> <code>&lt;SOS&gt;</code>, <code>"हम"</code>, <code>"दोस्त"</code>, <code>"हैं"</code> (shifted right by 1)<br>
+<b>Decoder TARGET (label):</b> <code>"हम"</code>, <code>"दोस्त"</code>, <code>"हैं"</code>, <code>&lt;EOS&gt;</code><br><br>
+<b>Why shift by 1?</b> At each position <i>i</i>, the decoder input is token <i>i</i> and it must predict token <i>i+1</i>. Shifting achieves this cleanly.`
+  },
+  workspace:`
+    <div class="tf-box">
+      <div class="tf-col">
+        <div class="tf-label" style="color:#38bdf8;">ENCODER INPUT (ALL AT ONCE)</div>
+        <span class="tf-token tf-src">"we"</span>
+        <span class="tf-token tf-src">"are"</span>
+        <span class="tf-token tf-src">"friends"</span>
+        <div style="margin-top:8px;font-size:0.78rem;color:#94a3b8;">Shape: 3 × 512 (after embedding)</div>
+      </div>
+      <div class="tf-col">
+        <div class="tf-label" style="color:#c084fc;">DECODER INPUT (shifted right)</div>
+        <span class="tf-token tf-tgt">"&lt;SOS&gt;"</span>
+        <span class="tf-token tf-tgt">"हम"</span>
+        <span class="tf-token tf-tgt">"दोस्त"</span>
+        <span class="tf-token tf-tgt">"हैं"</span>
+        <div style="margin-top:8px;font-size:0.78rem;color:#94a3b8;">Shape: 4 × 512 (after embedding)</div>
+      </div>
+    </div>
+    <div style="margin-top:8px;background:#060f1e;border:1px solid #1e3a5f;border-radius:7px;padding:10px;">
+      <div style="font-size:0.78rem;font-weight:800;text-transform:uppercase;color:#4ade80;margin-bottom:6px;">TARGET LABELS (What decoder must predict)</div>
+      <span class="tf-token tf-out">"हम"</span>
+      <span class="tf-token tf-out">"दोस्त"</span>
+      <span class="tf-token tf-out">"हैं"</span>
+      <span class="tf-token tf-out">"&lt;EOS&gt;"</span>
+      <div style="margin-top:8px;font-size:0.78rem;color:#94a3b8;">Position 0 must predict "हम", position 1 must predict "दोस्त", etc.</div>
+    </div>`
+},
+{
+  phase:0, phaseLabel:"PHASE 0 — Data Setup",
+  title:"Phase 0 — Step 2: Word Embeddings + Positional Encoding (Encoder)",
+  badge:"Phase 0 — Step 2/3",
+  loss:"–", lossLabel:"Not computed yet",
+  piActive: -1,
+  formula:{
+    h:"📐 X_enc = Embedding(token) + PE(position)",
+    body:`Each source word is converted to a dense vector via an Embedding Matrix E ∈ ℝ<sup>|V_src| × 512</sup>.<br>
+Then Positional Encoding is added element-wise:<br>
+<code>PE(pos, 2i) = sin(pos / 10000^(2i/512))</code><br>
+<code>PE(pos, 2i+1) = cos(pos / 10000^(2i/512))</code><br><br>
+<b>Result:</b> X_enc ∈ ℝ<sup>3×512</sup> — each row is a 512-dim position-aware vector.`
+  },
+  workspace:`
+    <table class="data-table">
+      <thead><tr><th>Token</th><th>Token ID</th><th>Embedding X_embed (dim 0–3 shown)</th><th>+ PE (dim 0–3)</th><th>= X_enc row</th></tr></thead>
+      <tbody>
+        <tr><td class="tok-b">"we"</td><td>#42</td><td>[0.82, 0.55, 0.12, 0.91]</td><td style="color:#c084fc;">[0.00, 1.00, 0.00, 1.00]</td><td class="tok-g">[0.82, 1.55, 0.12, 1.91]</td></tr>
+        <tr><td class="tok-b">"are"</td><td>#105</td><td>[0.15, 0.78, -0.62, 0.34]</td><td style="color:#c084fc;">[0.84, 0.54, 0.10, 0.99]</td><td class="tok-g">[0.99, 1.32, -0.52, 1.33]</td></tr>
+        <tr><td class="tok-b">"friends"</td><td>#812</td><td>[0.95, -0.12, 0.88, 0.56]</td><td style="color:#c084fc;">[0.91, -0.42, 0.20, 0.98]</td><td class="tok-g">[1.86, -0.54, 1.08, 1.54]</td></tr>
+      </tbody>
+    </table>
+    <div class="parallel-note">⚡ <b>All 3 tokens embedded in PARALLEL</b> — one matrix operation, not a loop!</div>`
+},
+{
+  phase:0, phaseLabel:"PHASE 0 — Data Setup",
+  title:"Phase 0 — Step 3: Word Embeddings + Positional Encoding (Decoder)",
+  badge:"Phase 0 — Step 3/3",
+  loss:"–", lossLabel:"Not computed yet",
+  piActive: -1,
+  formula:{
+    h:"📐 Y_dec = Embedding(target_token) + PE(position)",
+    body:`Same embedding + positional encoding logic applied to the 4 decoder input tokens.<br>
+<b>Result:</b> Y_dec ∈ ℝ<sup>4×512</sup><br><br>
+Note: Decoder uses a <b>separate</b> target-language embedding matrix E_target ∈ ℝ<sup>|V_tgt| × 512</sup>.`
+  },
+  workspace:`
+    <table class="data-table">
+      <thead><tr><th>Token</th><th>Token ID</th><th>Embedding Y_embed (dim 0–3)</th><th>+ PE</th><th>= Y_dec row</th></tr></thead>
+      <tbody>
+        <tr><td class="tok-p">"&lt;SOS&gt;"</td><td>#1</td><td>[0.71, 0.42, 0.18, 1.21]</td><td style="color:#c084fc;">[0.00, 1.00, 0.00, 1.00]</td><td class="tok-g">[0.71, 1.42, 0.18, 2.21]</td></tr>
+        <tr><td class="tok-p">"हम"</td><td>#402</td><td>[0.95, 0.88, -0.32, 1.45]</td><td style="color:#c084fc;">[0.84, 0.54, 0.10, 0.99]</td><td class="tok-g">[1.79, 1.42, -0.22, 2.44]</td></tr>
+        <tr><td class="tok-p">"दोस्त"</td><td>#819</td><td>[1.62, -0.15, 0.92, 1.38]</td><td style="color:#c084fc;">[0.91, -0.42, 0.20, 0.98]</td><td class="tok-g">[2.53, -0.57, 1.12, 2.36]</td></tr>
+        <tr><td class="tok-p">"हैं"</td><td>#215</td><td>[0.88, 1.12, -0.44, 1.55]</td><td style="color:#c084fc;">[0.14, -0.99, 0.30, 0.96]</td><td class="tok-g">[1.02, 0.13, -0.14, 2.51]</td></tr>
+      </tbody>
+    </table>
+    <div class="parallel-note">⚡ All 4 decoder tokens embedded at once. Teacher Forcing: we use GROUND TRUTH tokens, not model predictions!</div>`
+},
+
+// ═══════════════════════════════════════════════════════════════════
+// PHASE 1: ENCODER FORWARD PASS
+// ═══════════════════════════════════════════════════════════════════
+{
+  phase:1, phaseLabel:"PHASE 1 — Encoder Forward",
+  title:"Phase 1 — Step 1: Encoder Self-Attention — Compute Q, K, V",
+  badge:"Phase 1 — Step 1/3",
+  loss:"–", lossLabel:"Not computed yet",
+  piActive: 0,
+  formula:{
+    h:"🔍 Q = X·W^Q,   K = X·W^K,   V = X·W^V",
+    body:`The encoder projects each input vector X into three separate spaces using <b>learned weight matrices</b>:<br>
+<code>W^Q ∈ ℝ^(512×64)</code> — Query projection<br>
+<code>W^K ∈ ℝ^(512×64)</code> — Key projection<br>
+<code>W^V ∈ ℝ^(512×64)</code> — Value projection<br><br>
+These W matrices are what get updated during training! Right now they have current (possibly random) values.`
+  },
+  workspace:`
+    <table class="data-table">
+      <thead><tr><th>Token</th><th>Query Q (dim 0–1)</th><th>Key K (dim 0–1)</th><th>Value V (dim 0–1)</th></tr></thead>
+      <tbody>
+        <tr><td class="tok-b">"we"</td><td>[0.41, 0.88]</td><td>[0.49, 0.77]</td><td>[1.08, 0.22]</td></tr>
+        <tr><td class="tok-b">"are"</td><td>[0.12, 0.31]</td><td>[0.22, 0.41]</td><td>[0.39, 0.89]</td></tr>
+        <tr><td class="tok-b">"friends"</td><td>[0.79, 0.68]</td><td>[0.88, 0.59]</td><td>[1.48, 1.18]</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:10px;background:#060f1e;border:1px solid #1e3a5f;border-radius:7px;padding:10px;font-size:0.82rem;">
+      <span class="tok-a">Dot product example:</span><br>
+      Q("we") = [0.82, 1.55, 0.12, 1.91] · W^Q<br>
+      = (0.82×0.20 + 1.55×0.30 + 0.12×0.10 + 1.91×0.10), ... = <b class="tok-g">[0.41, 0.88]</b>
+    </div>`
+},
+{
+  phase:1, phaseLabel:"PHASE 1 — Encoder Forward",
+  title:"Phase 1 — Step 2: Encoder Self-Attention — Softmax( Q·Kᵀ / √d_k )",
+  badge:"Phase 1 — Step 2/3",
+  loss:"–", lossLabel:"Not computed yet",
+  piActive: 0,
+  formula:{
+    h:"📊 Attention(Q, K, V) = Softmax( Q·Kᵀ / √d_k ) · V",
+    body:`Scale by <code>√d_k = √64 = 8</code> to prevent vanishing gradients in Softmax.<br>
+<b>No masking</b> in the encoder — every word can attend to every other word bidirectionally!<br>
+"are" sees both "we" and "friends" simultaneously — this is the power of self-attention.`
+  },
+  workspace:`
+    <div class="hmap-wrap">
+      <div class="hmap" style="grid-template-columns:80px 85px 85px 90px;">
+        <div class="hh">Q \ K</div><div class="hh">"we"</div><div class="hh">"are"</div><div class="hh">"friends"</div>
+        <div class="hl">"we"</div>
+        <div class="hc" style="background:rgba(56,189,248,0.75);color:#000;">70%</div>
+        <div class="hc" style="background:rgba(56,189,248,0.22);color:#fff;">15%</div>
+        <div class="hc" style="background:rgba(56,189,248,0.22);color:#fff;">15%</div>
+        <div class="hl">"are"</div>
+        <div class="hc" style="background:rgba(56,189,248,0.30);color:#fff;">20%</div>
+        <div class="hc" style="background:rgba(56,189,248,0.75);color:#000;">60%</div>
+        <div class="hc" style="background:rgba(56,189,248,0.30);color:#fff;">20%</div>
+        <div class="hl">"friends"</div>
+        <div class="hc" style="background:rgba(56,189,248,0.70);color:#000;">60%</div>
+        <div class="hc" style="background:rgba(56,189,248,0.15);color:#fff;">10%</div>
+        <div class="hc" style="background:rgba(56,189,248,0.40);color:#fff;">30%</div>
+      </div>
+    </div>
+    <div style="font-size:0.8rem;color:#94a3b8;margin-top:6px;">✅ No masking in encoder — full bidirectional attention!</div>`
+},
+{
+  phase:1, phaseLabel:"PHASE 1 — Encoder Forward",
+  title:"Phase 1 — Step 3: Encoder Output Z_enc (after FFNN + Add & Norm × 6 blocks)",
+  badge:"Phase 1 — Step 3/3",
+  loss:"–", lossLabel:"Not computed yet",
+  piActive: 0,
+  formula:{
+    h:"🔷 Encoder Final Output: Z_enc ∈ ℝ^(3×512)",
+    body:`After 6 stacked encoder blocks (each with Self-Attention + FFNN + Add & Norm), we get:<br>
+<code>Z_enc = Encoder(X_enc)</code> ∈ ℝ<sup>3×512</sup><br><br>
+<b>Add & Norm:</b> <code>LayerNorm(X + SubLayer(X))</code> — residual connections preserve gradients during backprop!<br>
+<b>FFNN:</b> <code>FFN(Z) = max(0, Z·W₁ + b₁)·W₂ + b₂</code> — dim 512 → 2048 → 512<br>
+Z_enc is computed ONCE and shared with ALL decoder layers via Cross-Attention.`
+  },
+  workspace:`
+    <table class="data-table">
+      <thead><tr><th>Source Token</th><th>Z_enc Output Vector (dim 0–3 of 512)</th><th>Meaning Captured</th></tr></thead>
+      <tbody>
+        <tr><td class="tok-b">"we"</td><td class="tok-g">[1.22, 0.88, 0.48, 1.42]</td><td>Subject pronoun, plural, relates to "friends"</td></tr>
+        <tr><td class="tok-b">"are"</td><td class="tok-g">[0.49, 1.41, -0.10, 1.09]</td><td>Plural copula verb, links subject to predicate</td></tr>
+        <tr><td class="tok-b">"friends"</td><td class="tok-g">[1.96, 0.04, 0.91, 1.28]</td><td>Noun, friendship concept, plural</td></tr>
+      </tbody>
+    </table>
+    <div class="parallel-note">✅ Z_enc is now frozen and passed to Decoder Cross-Attention at EVERY decoder layer.</div>`
+},
+
+// ═══════════════════════════════════════════════════════════════════
+// PHASE 2: DECODER FORWARD PASS
+// ═══════════════════════════════════════════════════════════════════
+{
+  phase:2, phaseLabel:"PHASE 2 — Decoder Forward",
+  title:"Phase 2 — Step 1: Decoder Masked Self-Attention (Causal Mask)",
+  badge:"Phase 2 — Step 1/3",
+  loss:"–", lossLabel:"Not computed yet",
+  piActive: 1,
+  formula:{
+    h:"🛡️ Masked Self-Attention: Softmax( Q_dec·K_dec^T / √d_k + M )",
+    body:`The decoder input is all 4 target tokens at once: <code>[&lt;SOS&gt;, हम, दोस्त, हैं]</code><br>
+<b>Causal Mask M:</b> upper triangle positions → <code>-∞</code>, so Softmax gives 0%.<br>
+This prevents token at position <i>i</i> from seeing position <i>j > i</i> — simulating sequential generation.<br><br>
+<b>Why do we need masking during training?</b> Because all 4 tokens are fed simultaneously. Without masking, position 0 could cheat by looking at positions 1, 2, 3!`
+  },
+  workspace:`
+    <div class="hmap-wrap">
+      <div class="hmap" style="grid-template-columns:75px 75px 80px 82px 82px;">
+        <div class="hh">Q\K</div><div class="hh">"&lt;SOS&gt;"</div><div class="hh">"हम"</div><div class="hh">"दोस्त"</div><div class="hh">"हैं"</div>
+        <div class="hl">"&lt;SOS&gt;"</div>
+        <div class="hc" style="background:rgba(251,191,36,0.85);color:#000;">100%</div>
+        <div class="hc hc-mask">0%</div><div class="hc hc-mask">0%</div><div class="hc hc-mask">0%</div>
+        <div class="hl">"हम"</div>
+        <div class="hc" style="background:rgba(251,191,36,0.50);color:#fff;">45%</div>
+        <div class="hc" style="background:rgba(251,191,36,0.75);color:#000;">55%</div>
+        <div class="hc hc-mask">0%</div><div class="hc hc-mask">0%</div>
+        <div class="hl">"दोस्त"</div>
+        <div class="hc" style="background:rgba(251,191,36,0.35);color:#fff;">30%</div>
+        <div class="hc" style="background:rgba(251,191,36,0.55);color:#000;">40%</div>
+        <div class="hc" style="background:rgba(251,191,36,0.42);color:#fff;">30%</div>
+        <div class="hc hc-mask">0%</div>
+        <div class="hl">"हैं"</div>
+        <div class="hc" style="background:rgba(251,191,36,0.28);color:#fff;">25%</div>
+        <div class="hc" style="background:rgba(251,191,36,0.42);color:#fff;">30%</div>
+        <div class="hc" style="background:rgba(251,191,36,0.52);color:#000;">35%</div>
+        <div class="hc" style="background:rgba(251,191,36,0.22);color:#fff;">10%</div>
+      </div>
+    </div>
+    <div style="font-size:0.79rem;color:#94a3b8;margin-top:6px;">🛡️ Red cells = -∞ mask applied before Softmax → 0% weight. Lower triangle only.</div>`
+},
+{
+  phase:2, phaseLabel:"PHASE 2 — Decoder Forward",
+  title:"Phase 2 — Step 2: Decoder Cross-Attention (reads Z_enc)",
+  badge:"Phase 2 — Step 2/3",
+  loss:"–", lossLabel:"Not computed yet",
+  piActive: 2,
+  formula:{
+    h:"🌉 Cross-Attention: Q_dec · K_enc^T  →  attends to source Z_enc",
+    body:`<b>Q</b> comes from the decoder (after Masked Self-Attention).<br>
+<b>K, V</b> come from <code>Z_enc</code> — the frozen encoder output.<br>
+This lets each decoder position <i>decide which source word to focus on</i>:<br>
+• "हम" (pos 1) focuses 70% on "we" → correct alignment<br>
+• "दोस्त" (pos 2) focuses 65% on "friends" → correct alignment<br>
+• "हैं" (pos 3) focuses 70% on "are" → verb alignment`
+  },
+  workspace:`
+    <div class="hmap-wrap">
+      <div class="hmap" style="grid-template-columns:82px 82px 82px 90px;">
+        <div class="hh">Q_dec\K_enc</div><div class="hh">"we"</div><div class="hh">"are"</div><div class="hh">"friends"</div>
+        <div class="hl">"&lt;SOS&gt;"</div>
+        <div class="hc" style="background:rgba(74,222,128,0.65);color:#000;">60%</div>
+        <div class="hc" style="background:rgba(74,222,128,0.25);color:#fff;">25%</div>
+        <div class="hc" style="background:rgba(74,222,128,0.20);color:#fff;">15%</div>
+        <div class="hl">"हम"</div>
+        <div class="hc" style="background:rgba(74,222,128,0.85);color:#000;">70%</div>
+        <div class="hc" style="background:rgba(74,222,128,0.15);color:#fff;">15%</div>
+        <div class="hc" style="background:rgba(74,222,128,0.15);color:#fff;">15%</div>
+        <div class="hl">"दोस्त"</div>
+        <div class="hc" style="background:rgba(74,222,128,0.20);color:#fff;">20%</div>
+        <div class="hc" style="background:rgba(74,222,128,0.20);color:#fff;">15%</div>
+        <div class="hc" style="background:rgba(74,222,128,0.78);color:#000;">65%</div>
+        <div class="hl">"हैं"</div>
+        <div class="hc" style="background:rgba(74,222,128,0.15);color:#fff;">15%</div>
+        <div class="hc" style="background:rgba(74,222,128,0.80);color:#000;">70%</div>
+        <div class="hc" style="background:rgba(74,222,128,0.20);color:#fff;">15%</div>
+      </div>
+    </div>
+    <div style="font-size:0.79rem;color:#4ade80;margin-top:6px;">✅ High alignment: हम↔we, दोस्त↔friends, हैं↔are — model is learning correct translation!</div>`
+},
+{
+  phase:2, phaseLabel:"PHASE 2 — Decoder Forward",
+  title:"Phase 2 — Step 3: Decoder Output Z_dec + Linear Layer → Logits L",
+  badge:"Phase 2 — Step 3/3",
+  loss:"–", lossLabel:"Not computed yet",
+  piActive: 2,
+  formula:{
+    h:"📈 All 4 Positions Computed in PARALLEL: L = Z_dec · W_vocab",
+    body:`After FFNN + Add & Norm ×3, the decoder emits Z_dec ∈ ℝ<sup>4×512</sup>.<br>
+<b>Linear Layer</b> projects to vocab size: <code>L = Z_dec · W_vocab</code> ∈ ℝ<sup>4 × |V|</sup><br>
+<b>One logit vector per target position</b> — 4 positions means 4 independent predictions in 1 pass!<br>
+<b>Training advantage over inference:</b> we compute loss at all 4 positions simultaneously!`
+  },
+  workspace:`
+    <table class="data-table">
+      <thead><tr><th>Decoder Position</th><th>Input Token</th><th>Must Predict</th><th>Highest Logit Word</th><th>Correct?</th></tr></thead>
+      <tbody>
+        <tr class="win"><td>pos = 0</td><td class="tok-p">"&lt;SOS&gt;"</td><td class="tok-g">"हम"</td><td class="tok-g">"हम" (+5.82)</td><td class="tok-g">✓ Correct</td></tr>
+        <tr class="win"><td>pos = 1</td><td class="tok-p">"हम"</td><td class="tok-g">"दोस्त"</td><td class="tok-g">"दोस्त" (+6.15)</td><td class="tok-g">✓ Correct</td></tr>
+        <tr class="win"><td>pos = 2</td><td class="tok-p">"दोस्त"</td><td class="tok-g">"हैं"</td><td class="tok-g">"हैं" (+6.55)</td><td class="tok-g">✓ Correct</td></tr>
+        <tr class="win"><td>pos = 3</td><td class="tok-p">"हैं"</td><td class="tok-g">"&lt;EOS&gt;"</td><td class="tok-g">"&lt;EOS&gt;" (+7.10)</td><td class="tok-g">✓ Correct</td></tr>
+      </tbody>
+    </table>
+    <div class="parallel-note">⚡ All 4 logit vectors computed in ONE forward pass! This is why training is faster than inference.</div>`
+},
+
+// ═══════════════════════════════════════════════════════════════════
+// PHASE 3: LOSS CALCULATION
+// ═══════════════════════════════════════════════════════════════════
+{
+  phase:3, phaseLabel:"PHASE 3 — Loss Calculation",
+  title:"Phase 3 — Step 1: Softmax → Probabilities for All 4 Positions",
+  badge:"Phase 3 — Step 1/3",
+  loss:"computing...", lossLabel:"Applying Softmax",
+  piActive: 3,
+  formula:{
+    h:"🎯 P(wᵢ | context) = exp(Lᵢ) / Σⱼ exp(Lⱼ)   for all positions",
+    body:`Softmax converts logits to probability distributions over vocabulary.<br>
+We get <b>4 separate probability distributions</b> — one per decoder position.<br>
+Each distribution assigns a probability to every word in the Hindi vocabulary!`
+  },
+  workspace:`
+    <table class="data-table">
+      <thead><tr><th>Position</th><th>True Label</th><th>P(true label)</th><th>Top-3 Predictions</th></tr></thead>
+      <tbody>
+        <tr><td>pos=0</td><td class="tok-g">"हम"</td><td class="tok-g">88.5%</td><td>"हम"=88.5%, "दोस्त"=7.2%, "हैं"=2.8%</td></tr>
+        <tr><td>pos=1</td><td class="tok-g">"दोस्त"</td><td class="tok-g">91.2%</td><td>"दोस्त"=91.2%, "हैं"=5.4%, "हम"=2.1%</td></tr>
+        <tr><td>pos=2</td><td class="tok-g">"हैं"</td><td class="tok-g">94.6%</td><td>"हैं"=94.6%, "हो"=3.2%, "दोस्त"=1.4%</td></tr>
+        <tr><td>pos=3</td><td class="tok-g">"&lt;EOS&gt;"</td><td class="tok-g">97.8%</td><td>"&lt;EOS&gt;"=97.8%, "हैं"=1.4%, "."=0.5%</td></tr>
+      </tbody>
+    </table>`
+},
+{
+  phase:3, phaseLabel:"PHASE 3 — Loss Calculation",
+  title:"Phase 3 — Step 2: Cross-Entropy Loss at Each Position",
+  badge:"Phase 3 — Step 2/3",
+  loss:"computing...", lossLabel:"Summing CE Losses",
+  piActive: 3,
+  formula:{
+    h:"📉 CE Loss = -log P(y_true | context)  per position",
+    body:`Cross-Entropy loss penalizes how wrong the model is.<br>
+<b>If P(true label) = 100%</b> → Loss = -log(1.0) = <b>0.0</b> (perfect)<br>
+<b>If P(true label) = 10%</b>  → Loss = -log(0.1) = <b>2.3</b> (bad)<br><br>
+<code>L_pos = -log(P(y_true_pos))</code><br>
+<code>L_total = (1/4) × Σ L_pos</code>   (averaged over all 4 positions)`
+  },
+  workspace:`
+    <table class="data-table">
+      <thead><tr><th>Position</th><th>True Label</th><th>P(y_true)</th><th>CE Loss = -log P(y_true)</th></tr></thead>
+      <tbody>
+        <tr class="loss-row"><td>pos=0</td><td class="tok-g">"हम"</td><td>0.885</td><td class="tok-a">-log(0.885) = <b>0.122</b></td></tr>
+        <tr class="loss-row"><td>pos=1</td><td class="tok-g">"दोस्त"</td><td>0.912</td><td class="tok-a">-log(0.912) = <b>0.092</b></td></tr>
+        <tr class="loss-row"><td>pos=2</td><td class="tok-g">"हैं"</td><td>0.946</td><td class="tok-a">-log(0.946) = <b>0.055</b></td></tr>
+        <tr class="loss-row"><td>pos=3</td><td class="tok-g">"&lt;EOS&gt;"</td><td>0.978</td><td class="tok-a">-log(0.978) = <b>0.022</b></td></tr>
+      </tbody>
+    </table>`
+},
+{
+  phase:3, phaseLabel:"PHASE 3 — Loss Calculation",
+  title:"Phase 3 — Step 3: Total Loss = Average Cross-Entropy",
+  badge:"Phase 3 — Step 3/3",
+  loss:"0.073", lossLabel:"Total Training Loss (this batch)",
+  piActive: 3,
+  formula:{
+    h:"📉 L_total = (0.122 + 0.092 + 0.055 + 0.022) / 4 = 0.073",
+    body:`<b>Total Loss for this training example = 0.073</b><br>
+This is relatively low, indicating the model is already predicting well.<br>
+At the start of training (random weights), loss would be much higher: ~log(|V|) ≈ log(50000) ≈ 10.8<br><br>
+<b>Goal of training:</b> minimize this loss over thousands of batches so the model generalizes to ALL translation pairs.`
+  },
+  workspace:`
+    <div style="background:#060f1e;border:1px solid #fbbf24;border-radius:10px;padding:16px;text-align:center;margin-bottom:12px;">
+      <div style="font-size:0.8rem;color:#94a3b8;">Total Cross-Entropy Loss</div>
+      <div style="font-size:2.2rem;font-weight:800;color:#fbbf24;font-family:'Courier New',monospace;">L = 0.073</div>
+      <div style="font-size:0.8rem;color:#94a3b8;margin-top:4px;">= (0.122 + 0.092 + 0.055 + 0.022) / 4</div>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Loss Component</th><th>Value</th><th>Model Status</th></tr></thead>
+      <tbody>
+        <tr><td>Pos 0 — "हम"</td><td class="tok-a">0.122</td><td>88.5% confidence — improving</td></tr>
+        <tr><td>Pos 1 — "दोस्त"</td><td class="tok-a">0.092</td><td>91.2% confidence — good</td></tr>
+        <tr><td>Pos 2 — "हैं"</td><td class="tok-a">0.055</td><td>94.6% confidence — very good</td></tr>
+        <tr><td>Pos 3 — "&lt;EOS&gt;"</td><td class="tok-a">0.022</td><td>97.8% confidence — excellent</td></tr>
+      </tbody>
+    </table>`
+},
+
+// ═══════════════════════════════════════════════════════════════════
+// PHASE 4: BACKPROPAGATION
+// ═══════════════════════════════════════════════════════════════════
+{
+  phase:4, phaseLabel:"PHASE 4 — Backpropagation",
+  title:"Phase 4 — Step 1: Chain Rule — Computing ∂L/∂W through the Network",
+  badge:"Phase 4 — Step 1/3",
+  loss:"0.073", lossLabel:"Backprop starting from L=0.073",
+  piActive: 4,
+  formula:{
+    h:"🔗 Backpropagation: Chain Rule ∂L/∂W = ∂L/∂Z · ∂Z/∂W",
+    body:`Gradients flow <b>backwards</b> from loss through every operation:<br>
+<code>L → Softmax → Linear (W_vocab) → FFNN → Cross-Attn (W^Q, W^K, W^V, W^O) → Masked-Attn → Embeddings</code><br><br>
+<b>At each layer:</b> <code>∂L/∂W_layer = ∂L/∂output_layer × ∂output_layer/∂W_layer</code><br>
+<b>Add & Norm (residual connections)</b> are critical — they provide a <i>gradient highway</i> so early layers don't suffer vanishing gradients!`
+  },
+  workspace:`
+    <div style="font-size:0.82rem;color:#94a3b8;margin-bottom:10px;">Gradient magnitude flowing backward through each layer (relative scale):</div>
+    <div class="grad-flow">
+      <div class="gf-row">
+        <div class="gf-name">Linear W_vocab</div>
+        <div class="gf-bar-bg"><div class="gf-bar" style="width:95%;background:linear-gradient(90deg,#4ade80,#38bdf8);"></div></div>
+        <div class="gf-val tok-g">|∂L/∂W| = 0.95</div>
+      </div>
+      <div class="gf-row">
+        <div class="gf-name">FFNN W₂ (Dec)</div>
+        <div class="gf-bar-bg"><div class="gf-bar" style="width:82%;background:linear-gradient(90deg,#4ade80,#38bdf8);"></div></div>
+        <div class="gf-val tok-g">|∂L/∂W| = 0.82</div>
+      </div>
+      <div class="gf-row">
+        <div class="gf-name">Cross-Attn W^Q</div>
+        <div class="gf-bar-bg"><div class="gf-bar" style="width:71%;background:linear-gradient(90deg,#fbbf24,#f59e0b);"></div></div>
+        <div class="gf-val tok-a">|∂L/∂W| = 0.71</div>
+      </div>
+      <div class="gf-row">
+        <div class="gf-name">Cross-Attn W^K (enc)</div>
+        <div class="gf-bar-bg"><div class="gf-bar" style="width:68%;background:linear-gradient(90deg,#fbbf24,#f59e0b);"></div></div>
+        <div class="gf-val tok-a">|∂L/∂W| = 0.68</div>
+      </div>
+      <div class="gf-row">
+        <div class="gf-name">Masked-Attn W^Q</div>
+        <div class="gf-bar-bg"><div class="gf-bar" style="width:58%;background:linear-gradient(90deg,#c084fc,#9333ea);"></div></div>
+        <div class="gf-val tok-p">|∂L/∂W| = 0.58</div>
+      </div>
+      <div class="gf-row">
+        <div class="gf-name">Enc Self-Attn W^Q</div>
+        <div class="gf-bar-bg"><div class="gf-bar" style="width:44%;background:linear-gradient(90deg,#c084fc,#9333ea);"></div></div>
+        <div class="gf-val tok-p">|∂L/∂W| = 0.44</div>
+      </div>
+      <div class="gf-row">
+        <div class="gf-name">Embedding Matrix E</div>
+        <div class="gf-bar-bg"><div class="gf-bar" style="width:28%;background:#475569;"></div></div>
+        <div class="gf-val" style="color:#94a3b8;">|∂L/∂W| = 0.28</div>
+      </div>
+    </div>`
+},
+{
+  phase:4, phaseLabel:"PHASE 4 — Backpropagation",
+  title:"Phase 4 — Step 2: Residual Connections — The Gradient Highway",
+  badge:"Phase 4 — Step 2/3",
+  loss:"0.073", lossLabel:"Gradient flowing backward",
+  piActive: 4,
+  formula:{
+    h:"🛣️ Why Add & Norm is critical for deep backprop",
+    body:`Without residual connections, gradients vanish through 6 encoder + 6 decoder = 12 stacked blocks.<br><br>
+<b>With residual:</b> <code>output = LayerNorm(x + SubLayer(x))</code><br>
+Gradient: <code>∂L/∂x = ∂L/∂output × (1 + ∂SubLayer/∂x)</code><br>
+The <b>+1 term</b> ensures gradient is NEVER zero even if ∂SubLayer/∂x ≈ 0!<br><br>
+<b>LayerNorm</b> normalizes activations, preventing gradient explosion.`
+  },
+  workspace:`
+    <table class="data-table">
+      <thead><tr><th>Mechanism</th><th>Problem Solved</th><th>How?</th></tr></thead>
+      <tbody>
+        <tr><td class="tok-g">Residual Connections (Add)</td><td>Vanishing gradients through deep layers</td><td>Adds identity shortcut: grad flows directly to early layers</td></tr>
+        <tr><td class="tok-b">Layer Normalization (Norm)</td><td>Unstable training, gradient explosion</td><td>Normalizes hidden states to mean=0, std=1 per layer</td></tr>
+        <tr><td class="tok-a">Scaled Dot-Product (√d_k)</td><td>Softmax saturation → vanishing gradients</td><td>Scales Q·Kᵀ before Softmax to keep values in normal range</td></tr>
+        <tr><td class="tok-p">Multi-Head (h=8 heads)</td><td>Single attention head is a bottleneck</td><td>8 independent attention heads learn different linguistic patterns</td></tr>
+      </tbody>
+    </table>`
+},
+{
+  phase:4, phaseLabel:"PHASE 4 — Backpropagation",
+  title:"Phase 4 — Step 3: Which Weight Matrices Get Gradients?",
+  badge:"Phase 4 — Step 3/3",
+  loss:"0.073", lossLabel:"Gradient computed for all W",
+  piActive: 4,
+  formula:{
+    h:"🗺️ Complete List of Learnable Parameters Updated per Backprop Step",
+    body:`The Transformer has ~65M learnable parameters (Base model). Every single one gets a gradient!`
+  },
+  workspace:`
+    <table class="data-table">
+      <thead><tr><th>Weight Matrix</th><th>Shape</th><th>Layer</th><th>Gets Gradient?</th></tr></thead>
+      <tbody>
+        <tr><td class="tok-b">W^Q, W^K, W^V, W^O (×8 heads)</td><td>512×64</td><td>Enc Self-Attention ×6</td><td class="tok-g">✓ Yes</td></tr>
+        <tr><td class="tok-b">W₁, W₂ (FFNN)</td><td>512×2048, 2048×512</td><td>Enc FFNN ×6</td><td class="tok-g">✓ Yes</td></tr>
+        <tr><td class="tok-p">W^Q, W^K, W^V, W^O (×8 heads)</td><td>512×64</td><td>Dec Masked Self-Attn ×6</td><td class="tok-g">✓ Yes</td></tr>
+        <tr><td class="tok-p">W^Q (dec), W^K, W^V (enc) W^O</td><td>512×64</td><td>Dec Cross-Attention ×6</td><td class="tok-g">✓ Yes</td></tr>
+        <tr><td class="tok-p">W₁, W₂ (FFNN)</td><td>512×2048, 2048×512</td><td>Dec FFNN ×6</td><td class="tok-g">✓ Yes</td></tr>
+        <tr><td class="tok-a">W_vocab</td><td>512×|V|</td><td>Linear Output Layer</td><td class="tok-g">✓ Yes</td></tr>
+        <tr><td class="tok-a">E_src, E_tgt</td><td>|V|×512</td><td>Embedding Matrices</td><td class="tok-g">✓ Yes</td></tr>
+      </tbody>
+    </table>`
+},
+
+// ═══════════════════════════════════════════════════════════════════
+// PHASE 5: WEIGHT UPDATE
+// ═══════════════════════════════════════════════════════════════════
+{
+  phase:5, phaseLabel:"PHASE 5 — Weight Update",
+  title:"Phase 5 — Step 1: Adam Optimizer — Adaptive Learning Rate",
+  badge:"Phase 5 — Step 1/3",
+  loss:"0.073", lossLabel:"Weights about to update",
+  piActive: 5,
+  formula:{
+    h:"⚡ Adam: m_t = β₁·m_{t-1} + (1-β₁)·g,   v_t = β₂·v_{t-1} + (1-β₂)·g²",
+    body:`<b>Adam (Adaptive Moment Estimation)</b> is the standard optimizer for Transformers.<br>
+It maintains a running mean <b>m_t</b> and variance <b>v_t</b> of gradients:<br>
+<code>β₁ = 0.9</code> (momentum), <code>β₂ = 0.999</code> (variance), <code>ε = 1e-8</code> (stability)<br><br>
+<b>Bias-corrected estimates:</b><br>
+<code>m̂_t = m_t / (1 - β₁^t)</code><br>
+<code>v̂_t = v_t / (1 - β₂^t)</code><br><br>
+<b>Weight update:</b> <code>W ← W − lr × m̂_t / (√v̂_t + ε)</code><br>
+Transformer typically uses <code>lr = 0.0001</code> with warmup schedule.`
+  },
+  workspace:`
+    <table class="data-table">
+      <thead><tr><th>Adam Parameter</th><th>Value</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td class="tok-a">Learning Rate (lr)</td><td>0.0001</td><td>Step size of each weight update</td></tr>
+        <tr><td class="tok-a">β₁ (momentum)</td><td>0.9</td><td>Exponential decay for gradient mean</td></tr>
+        <tr><td class="tok-a">β₂ (variance decay)</td><td>0.999</td><td>Exponential decay for gradient variance</td></tr>
+        <tr><td class="tok-a">ε (epsilon)</td><td>1e-8</td><td>Numerical stability — prevent division by 0</td></tr>
+        <tr><td class="tok-a">Warmup Steps</td><td>4000</td><td>Gradually increase lr to prevent early instability</td></tr>
+      </tbody>
+    </table>`
+},
+{
+  phase:5, phaseLabel:"PHASE 5 — Weight Update",
+  title:"Phase 5 — Step 2: Concrete Weight Update — W^Q in Cross-Attention",
+  badge:"Phase 5 — Step 2/3",
+  loss:"0.073→ lower", lossLabel:"Post-update loss decreasing",
+  piActive: 5,
+  formula:{
+    h:"🔧 Concrete Example: Updating W^Q in Decoder Cross-Attention",
+    body:`Before update: <code>W^Q[0,0] = 0.20</code><br>
+Gradient: <code>∂L/∂W^Q[0,0] = −0.71</code>  (negative = increase W^Q[0,0])<br>
+Adam update: <code>W^Q[0,0] ← 0.20 − 0.0001 × (−0.71) / (√variance + ε)</code><br>
+<code>W^Q[0,0] ← 0.20 + 0.000068 ≈ 0.200068</code><br><br>
+Each step is tiny — but over <b>millions of batches</b>, these small nudges accumulate into a perfectly tuned model!`
+  },
+  workspace:`
+    <div class="wu-box">
+      <div style="color:#94a3b8;margin-bottom:8px;">// Cross-Attention W^Q matrix — element [0,0] update example</div>
+      <div class="wu-before">BEFORE: W^Q[0,0] = 0.200000</div>
+      <div style="color:#94a3b8;margin:2px 0;">gradient ∂L/∂W^Q[0,0] = −0.710000</div>
+      <div class="wu-formula">Adam step: Δ = lr × m̂ / (√v̂ + ε) = 0.0001 × (−0.638) / 0.0316 = −0.000068</div>
+      <div class="wu-after">AFTER:  W^Q[0,0] = 0.200068  (nudged up slightly)</div>
+    </div>
+    <div style="margin-top:12px;background:#060f1e;border:1px solid #1e3a5f;border-radius:7px;padding:10px;font-size:0.82rem;">
+      <span class="tok-a">Total parameters updated this step:</span><br>
+      ~65,000,000 weight values, all nudged by their individual Adam-computed deltas in ONE backward pass.
+    </div>`
+},
+{
+  phase:5, phaseLabel:"PHASE 5 — Weight Update",
+  title:"Phase 5 — Step 3: Training Loop Summary — From 1 Step to Convergence",
+  badge:"Phase 5 — Step 3/3 — CYCLE COMPLETE",
+  loss:"→ 0.0", lossLabel:"After ~100K training steps",
+  piActive: 5,
+  formula:{
+    h:"🔄 The Full Training Loop — Repeated for Every Batch",
+    body:`One complete training cycle:<br>
+<b>1.</b> Load batch of (source, target) pairs → apply Teacher Forcing<br>
+<b>2.</b> Encoder forward pass → compute Z_enc<br>
+<b>3.</b> Decoder forward pass (parallel, with causal mask) → compute logits<br>
+<b>4.</b> Compute Cross-Entropy Loss at all target positions<br>
+<b>5.</b> Backpropagation → compute ∂L/∂W for all ~65M parameters<br>
+<b>6.</b> Adam update → nudge all weights toward lower loss<br>
+<b>7.</b> Repeat for next batch → loss gradually decreases to near 0!`
+  },
+  workspace:`
+    <table class="data-table">
+      <thead><tr><th>Training Step</th><th>Approx Loss</th><th>Model Behavior</th></tr></thead>
+      <tbody>
+        <tr><td>Step 1 (random init)</td><td class="tok-r">~10.8 (=log|V|)</td><td>Random guessing — uniform over vocabulary</td></tr>
+        <tr><td>Step 1,000</td><td class="tok-r">~4.2</td><td>Learns common words and basic structure</td></tr>
+        <tr><td>Step 10,000</td><td class="tok-a">~1.8</td><td>Learns syntax patterns and frequent translations</td></tr>
+        <tr><td>Step 50,000</td><td class="tok-a">~0.45</td><td>Good translations, some errors on rare words</td></tr>
+        <tr><td>Step 100,000+</td><td class="tok-g">~0.07</td><td>High quality translations, near-human level</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px;background:rgba(74,222,128,0.1);border:2px solid #4ade80;border-radius:10px;padding:14px;text-align:center;">
+      <div style="font-size:1.1rem;font-weight:800;color:#4ade80;margin-bottom:4px;">🎉 Full Training Pipeline Complete!</div>
+      <div style="font-size:0.85rem;color:#fff;">"we are friends" → <span style="color:#4ade80;font-weight:800;">"हम दोस्त हैं"</span></div>
+      <div style="font-size:0.78rem;color:#94a3b8;margin-top:4px;">Forward Pass → Loss → Backprop → Weight Update → Repeat</div>
+    </div>`
+}
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE & CONTROL
+// ─────────────────────────────────────────────────────────────────────────────
+var currentStep = 0;
+var autoInterval = null;
+
+var phaseStartIdx = [];  // index of first step per phase
+(function() {
+  var seenPhases = {};
+  for (var i = 0; i < STEPS.length; i++) {
+    var p = STEPS[i].phase;
+    if (seenPhases[p] === undefined) {
+      seenPhases[p] = true;
+      phaseStartIdx[p] = i;
+    }
+  }
+})();
+
+var PI_IDS = ['pi-0','pi-1','pi-2','pi-3','pi-4','pi-5'];
+
+function render() {
+  var s = STEPS[currentStep];
+  if (!s) return;
+
+  document.getElementById('stepTitle').innerHTML = s.title;
+  document.getElementById('stepBadge').innerHTML = s.badge;
+  document.getElementById('formulaBox').innerHTML = '<h4>' + s.formula.h + '</h4>' + s.formula.body;
+  document.getElementById('workspaceBody').innerHTML = s.workspace;
+  document.getElementById('stepInfo').innerHTML = 'Step ' + (currentStep+1) + ' of ' + STEPS.length;
+  document.getElementById('sb-loss').innerHTML = s.loss;
+  document.getElementById('sb-loss-label').innerHTML = s.lossLabel;
+
+  // Phase chips
+  for (var i = 0; i <= 5; i++) {
+    var chip = document.getElementById('chip' + i);
+    if (chip) chip.classList.toggle('active', s.phase === i);
+  }
+
+  // Pipeline items
+  for (var j = 0; j < PI_IDS.length; j++) {
+    var el = document.getElementById(PI_IDS[j]);
+    if (el) el.classList.toggle('active-pi', s.piActive === j);
+  }
+}
+
+function nextStep() {
+  if (currentStep < STEPS.length - 1) currentStep++;
+  else currentStep = 0;
+  render();
+}
+
+function goToPhase(p) {
+  if (phaseStartIdx[p] !== undefined) currentStep = phaseStartIdx[p];
+  render();
+}
+
+function toggleAuto() {
+  if (autoInterval) {
+    clearInterval(autoInterval);
+    autoInterval = null;
+    document.getElementById('autoBtn').innerHTML = '▶ Auto Play';
+  } else {
+    autoInterval = setInterval(function() {
+      if (currentStep >= STEPS.length - 1) {
+        clearInterval(autoInterval);
+        autoInterval = null;
+        document.getElementById('autoBtn').innerHTML = '▶ Auto Play';
+      } else {
+        currentStep++;
+        render();
+      }
+    }, 1800);
+    document.getElementById('autoBtn').innerHTML = '⏸ Pause';
+  }
+}
+
+function resetAll() {
+  if (autoInterval) { clearInterval(autoInterval); autoInterval = null; }
+  document.getElementById('autoBtn').innerHTML = '▶ Auto Play';
+  currentStep = 0;
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

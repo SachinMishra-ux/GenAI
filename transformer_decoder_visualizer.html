@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Transformer Decoder Visualizer | Masked & Cross-Attention</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #070a12;
+            --card-bg: #0f172a;
+            --card-border: #1e293b;
+            --accent-blue: #38bdf8;
+            --accent-purple: #c084fc;
+            --accent-green: #4ade80;
+            --accent-amber: #fbbf24;
+            --accent-pink: #f472b6;
+            --accent-red: #f87171;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            padding: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1340px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .header-badge {
+            display: inline-block;
+            background: rgba(192, 132, 252, 0.15);
+            color: var(--accent-purple);
+            border: 1px solid rgba(192, 132, 252, 0.3);
+            padding: 0.3rem 0.88rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        h1 {
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: 2.3rem;
+            color: #ffffff;
+            margin-bottom: 0.4rem;
+        }
+
+        .translation-banner {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: #1e293b;
+            border: 1px solid #334155;
+            padding: 0.55rem 1.35rem;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        /* STACK SELECTOR */
+        .stack-selector-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 0.85rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stack-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .stack-title {
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: 1.25rem;
+            color: var(--accent-purple);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stack-tabs {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.6rem;
+            margin-bottom: 0.75rem;
+        }
+
+        @media (max-width: 900px) {
+            .stack-tabs { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        .dec-tab {
+            background: #070a12;
+            border: 1px solid var(--card-border);
+            border-radius: 0.6rem;
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .dec-tab:hover {
+            border-color: var(--accent-purple);
+        }
+
+        .dec-tab.active-tab {
+            border-color: var(--accent-purple);
+            background: rgba(192, 132, 252, 0.15);
+            box-shadow: 0 0 14px rgba(192, 132, 252, 0.3);
+        }
+
+        .dec-tab.done-tab {
+            border-color: var(--accent-green);
+            background: rgba(74, 222, 128, 0.08);
+        }
+
+        .tab-num {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            background: #1e293b;
+            color: var(--accent-purple);
+            display: inline-block;
+            margin-bottom: 0.25rem;
+        }
+
+        .tab-name {
+            font-weight: 700;
+            font-size: 0.88rem;
+        }
+
+        .controls-bar {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .btn-full-run {
+            flex: 1;
+            background: linear-gradient(135deg, #c084fc 0%, #9333ea 100%);
+            color: #ffffff;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.6rem;
+            font-weight: 800;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 14px rgba(192, 132, 252, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn-full-run:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(192, 132, 252, 0.5);
+        }
+
+        .btn-pause {
+            background: #1e293b;
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 0.75rem 1rem;
+            border-radius: 0.6rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        /* SUB-STEPPER NAVIGATION */
+        .stepper {
+            display: flex;
+            gap: 0.35rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .step-btn {
+            flex: 1;
+            min-width: 110px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 0.5rem 0.35rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .step-btn:hover {
+            border-color: var(--accent-purple);
+            color: var(--text-main);
+        }
+
+        .step-btn.active {
+            background: rgba(192, 132, 252, 0.15);
+            border-color: var(--accent-purple);
+            color: var(--accent-purple);
+            box-shadow: 0 0 10px rgba(192, 132, 252, 0.2);
+        }
+
+        .step-btn .step-idx {
+            display: block;
+            font-size: 0.65rem;
+            opacity: 0.7;
+        }
+
+        /* MAIN CONTENT LAYOUT */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 950px) {
+            .grid-layout { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 0.85rem;
+            padding: 1.25rem;
+        }
+
+        .card-header {
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: 1.2rem;
+            color: var(--accent-purple);
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Explanation Box */
+        .explain-box {
+            background: #070a12;
+            border: 1px solid var(--card-border);
+            border-left: 4px solid var(--accent-amber);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.88rem;
+            line-height: 1.6;
+        }
+
+        .explain-box h4 {
+            color: var(--accent-amber);
+            font-size: 0.95rem;
+            margin-bottom: 0.4rem;
+        }
+
+        /* Tables & Vectors */
+        .vector-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+        }
+
+        .vector-table th {
+            text-align: left;
+            padding: 0.4rem 0.6rem;
+            background: #070a12;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .vector-table td {
+            padding: 0.5rem 0.6rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .word-cell {
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        .vec-chip {
+            display: inline-block;
+            padding: 0.15rem 0.35rem;
+            border-radius: 3px;
+            margin-right: 0.2rem;
+            background: rgba(255,255,255,0.06);
+        }
+
+        /* Heatmap Grid for Masked & Cross Attention */
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: 90px repeat(3, 1fr);
+            gap: 0.4rem;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            margin: 1rem 0;
+        }
+
+        .heatmap-cell {
+            padding: 0.75rem 0.5rem;
+            border-radius: 0.4rem;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .cell-masked {
+            background: rgba(248, 113, 113, 0.15);
+            color: var(--accent-red);
+            border: 1px dashed rgba(248, 113, 113, 0.4);
+            text-decoration: line-through;
+        }
+
+        .cell-label {
+            font-weight: 700;
+            color: var(--accent-green);
+            text-align: right;
+            padding-right: 0.5rem;
+        }
+
+        /* Paper Diagram Sidebar */
+        .paper-sidebar {
+            background: #070a12;
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .diagram-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .output-pred-card {
+            background: linear-gradient(135deg, rgba(74, 222, 128, 0.15) 0%, rgba(192, 132, 252, 0.15) 100%);
+            border: 1px solid var(--accent-green);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="header-badge">🎓 Transformer Architecture Masterclass</div>
+        <h1>Transformer Decoder, Masked & Cross-Attention</h1>
+        <div class="translation-banner">
+            <span>Encoder Output: <span style="color: var(--accent-blue);">"we are friends"</span></span>
+            <span style="color: var(--text-muted);">➡️</span>
+            <span>Decoder Target: <span style="color: var(--accent-green);">"&lt;SOS&gt; हम दोस्त हैं"</span></span>
+        </div>
+    </header>
+
+    <!-- 1. MASTER DECODER STACK SELECTOR TABS -->
+    <div class="stack-selector-card">
+        <div class="stack-header">
+            <div class="stack-title">
+                <span>📦 Select Decoder Block (Stack N = 1 to 6)</span>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+                Current Active: <b id="current-decoder-title" style="color: var(--accent-purple);">Decoder Block 1</b>
+            </div>
+        </div>
+
+        <div class="stack-tabs">
+            <div class="dec-tab active-tab" id="tab-dec-1" onclick="selectDecoderBlock(1)">
+                <span class="tab-num">N = 1</span>
+                <div class="tab-name">Decoder 1</div>
+                <div style="font-size:0.7rem; color:var(--text-muted);">Shifted Target</div>
+            </div>
+            <div class="dec-tab" id="tab-dec-2" onclick="selectDecoderBlock(2)">
+                <span class="tab-num">N = 2</span>
+                <div class="tab-name">Decoder 2</div>
+                <div style="font-size:0.7rem; color:var(--text-muted);">Input: Z1_dec</div>
+            </div>
+            <div class="dec-tab" id="tab-dec-3" onclick="selectDecoderBlock(3)">
+                <span class="tab-num">N = 3</span>
+                <div class="tab-name">Decoder 3</div>
+                <div style="font-size:0.7rem; color:var(--text-muted);">Input: Z2_dec</div>
+            </div>
+            <div class="dec-tab" id="tab-dec-4" onclick="selectDecoderBlock(4)">
+                <span class="tab-num">N = 4</span>
+                <div class="tab-name">Decoder 4</div>
+                <div style="font-size:0.7rem; color:var(--text-muted);">Input: Z3_dec</div>
+            </div>
+            <div class="dec-tab" id="tab-dec-5" onclick="selectDecoderBlock(5)">
+                <span class="tab-num">N = 5</span>
+                <div class="tab-name">Decoder 5</div>
+                <div style="font-size:0.7rem; color:var(--text-muted);">Input: Z4_dec</div>
+            </div>
+            <div class="dec-tab" id="tab-dec-6" onclick="selectDecoderBlock(6)">
+                <span class="tab-num">N = 6</span>
+                <div class="tab-name">Decoder 6</div>
+                <div style="font-size:0.7rem; color:var(--text-muted);">Input: Z5_dec</div>
+            </div>
+        </div>
+
+        <div class="controls-bar">
+            <button class="btn-full-run" id="btn-full-run" onclick="toggleFullPipelineAnimation()">
+                <span>🚀 Run Full 6-Decoder Deep Pipeline Animation</span>
+            </button>
+            <button class="btn-pause" onclick="resetPipeline()">🔄 Reset Stack</button>
+        </div>
+    </div>
+
+    <!-- 2. SUB-STEPPER FOR DECODER OPERATIONS -->
+    <div class="stepper">
+        <button class="step-btn active" id="btn-substep-0" onclick="goToSubStep(0)">
+            <span class="step-idx">STEP 1</span>
+            Target Embeddings (Y_embed)
+        </button>
+        <button class="step-btn" id="btn-substep-1" onclick="goToSubStep(1)">
+            <span class="step-idx">STEP 2</span>
+            Positional Addition (Y + PE)
+        </button>
+        <button class="step-btn" id="btn-substep-2" onclick="goToSubStep(2)">
+            <span class="step-idx">STEP 3</span>
+            Masked Self-Attention
+        </button>
+        <button class="step-btn" id="btn-substep-3" onclick="goToSubStep(3)">
+            <span class="step-idx">STEP 4</span>
+            Add & Norm 1
+        </button>
+        <button class="step-btn" id="btn-substep-4" onclick="goToSubStep(4)">
+            <span class="step-idx">STEP 5</span>
+            Encoder-Decoder Cross-Attention
+        </button>
+        <button class="step-btn" id="btn-substep-5" onclick="goToSubStep(5)">
+            <span class="step-idx">STEP 6</span>
+            Add & Norm 2
+        </button>
+        <button class="step-btn" id="btn-substep-6" onclick="goToSubStep(6)">
+            <span class="step-idx">STEP 7</span>
+            Feed-Forward (FFNN)
+        </button>
+        <button class="step-btn" id="btn-substep-7" onclick="goToSubStep(7)">
+            <span class="step-idx">STEP 8</span>
+            Add & Norm 3
+        </button>
+        <button class="step-btn" id="btn-substep-8" onclick="goToSubStep(8)">
+            <span class="step-idx">STEP 9</span>
+            Linear & Softmax Output
+        </button>
+    </div>
+
+    <!-- 3. MAIN WORKSPACE & PAPER DIAGRAM SIDEBAR -->
+    <div class="grid-layout">
+        <!-- Main Calculation Panel -->
+        <div class="card">
+            <div class="card-header">
+                <span id="step-title">Step 1: Shifted Target Outputs & Embeddings</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);" id="step-counter">Step 1 of 9</span>
+            </div>
+
+            <!-- Explanation Box -->
+            <div class="explain-box" id="step-explain">
+                <!-- Injected dynamically -->
+            </div>
+
+            <!-- Workspace -->
+            <div id="step-workspace">
+                <!-- Data rendered dynamically -->
+            </div>
+        </div>
+
+        <!-- Sidebar: Official Transformer Decoder Diagram (Vaswani et al. 2017) -->
+        <div class="paper-sidebar">
+            <div class="diagram-title">Decoder Diagram (Vaswani et al. 2017)</div>
+
+            <svg width="280" height="440" viewBox="0 0 280 440" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1 L 10 5 L 0 9 z" fill="#94a3b8"/>
+                    </marker>
+                    <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1 L 10 5 L 0 9 z" fill="#4ade80"/>
+                    </marker>
+                </defs>
+
+                <!-- Linear & Softmax at top -->
+                <rect x="75" y="15" width="134" height="24" rx="5" id="svg-node-linear" fill="#fbcfe8" fill-opacity="0.25" stroke="#f472b6" stroke-width="2"/>
+                <text x="142" y="31" fill="#fbcfe8" font-size="10" font-weight="700" text-anchor="middle">Linear & Softmax</text>
+
+                <!-- Outer Nx Container Box for Decoder -->
+                <rect x="52" y="50" width="180" height="295" rx="16" fill="#0f172a" stroke="#c084fc" stroke-width="2"/>
+                <text x="14" y="70" fill="#c084fc" font-size="14" font-weight="700" id="svg-stack-lbl">N = 1x</text>
+
+                <!-- Top Add & Norm 3 -->
+                <rect x="75" y="65" width="134" height="28" rx="6" id="svg-node-addnorm3" fill="#fef08a" fill-opacity="0.25" stroke="#facc15" stroke-width="2"/>
+                <text x="142" y="83" fill="#fef08a" font-size="10.5" font-weight="700" text-anchor="middle">Add & Norm 3</text>
+
+                <!-- Feed Forward -->
+                <rect x="75" y="105" width="134" height="30" rx="6" id="svg-node-ffn" fill="#bae6fd" fill-opacity="0.25" stroke="#38bdf8" stroke-width="2"/>
+                <text x="142" y="124" fill="#bae6fd" font-size="10.5" font-weight="700" text-anchor="middle">Feed Forward</text>
+
+                <!-- Add & Norm 2 -->
+                <rect x="75" y="145" width="134" height="28" rx="6" id="svg-node-addnorm2" fill="#fef08a" fill-opacity="0.25" stroke="#facc15" stroke-width="2"/>
+                <text x="142" y="163" fill="#fef08a" font-size="10.5" font-weight="700" text-anchor="middle">Add & Norm 2</text>
+
+                <!-- Cross-Attention (Multi-Head Attention) -->
+                <rect x="75" y="185" width="134" height="34" rx="6" id="svg-node-cross" fill="#bbf7d0" fill-opacity="0.25" stroke="#4ade80" stroke-width="2"/>
+                <text x="142" y="200" fill="#bbf7d0" font-size="10" font-weight="700" text-anchor="middle">Multi-Head</text>
+                <text x="142" y="212" fill="#bbf7d0" font-size="10" font-weight="700" text-anchor="middle">Cross-Attention</text>
+
+                <!-- Inputs from Encoder Z_enc on left into Cross-Attention -->
+                <path d="M 5 202 L 75 202" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)"/>
+                <text x="38" y="194" fill="#38bdf8" font-size="9" font-weight="700" text-anchor="middle">Encoder K,V</text>
+
+                <!-- Add & Norm 1 -->
+                <rect x="75" y="230" width="134" height="28" rx="6" id="svg-node-addnorm1" fill="#fef08a" fill-opacity="0.25" stroke="#facc15" stroke-width="2"/>
+                <text x="142" y="248" fill="#fef08a" font-size="10.5" font-weight="700" text-anchor="middle">Add & Norm 1</text>
+
+                <!-- Masked Multi-Head Self-Attention -->
+                <rect x="75" y="270" width="134" height="36" rx="6" id="svg-node-maskedmha" fill="#fde68a" fill-opacity="0.25" stroke="#fbbf24" stroke-width="2"/>
+                <text x="142" y="285" fill="#fde68a" font-size="10" font-weight="700" text-anchor="middle">Masked Multi-Head</text>
+                <text x="142" y="297" fill="#fde68a" font-size="10" font-weight="700" text-anchor="middle">Attention</text>
+
+                <!-- Residual Lines -->
+                <path d="M 142 315 C 60 315, 60 244, 75 244" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+                <path d="M 142 224 C 60 224, 60 159, 75 159" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+                <path d="M 142 140 C 60 140, 60 79, 75 79" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+
+                <!-- Main vertical connection line -->
+                <path d="M 142 360 L 142 306" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+                <path d="M 142 270 L 142 258" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+                <path d="M 142 230 L 142 219" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+                <path d="M 142 185 L 142 173" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+                <path d="M 142 145 L 142 135" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+                <path d="M 142 105 L 142 93" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+                <path d="M 142 65 L 142 39" stroke="#4ade80" stroke-width="2" fill="none" marker-end="url(#arrow-green)"/>
+
+                <!-- PE circle -->
+                <circle cx="95" cy="375" r="13" fill="#0f172a" stroke="#c084fc" stroke-width="2" id="svg-node-pe"/>
+                <path d="M 88 375 Q 91.5 368 95 375 T 102 375" stroke="#c084fc" stroke-width="2" fill="none"/>
+                <text x="12" y="379" fill="#c084fc" font-size="9.5" font-weight="600">PE</text>
+
+                <!-- Plus circle -->
+                <circle cx="142" cy="375" r="9" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+                <text x="142" y="379" fill="#38bdf8" font-size="12" font-weight="700" text-anchor="middle">+</text>
+
+                <!-- Line connecting PE to + -->
+                <line x1="108" y1="375" x2="133" y2="375" stroke="#94a3b8" stroke-width="1.8"/>
+
+                <!-- Output Embedding Box -->
+                <rect x="75" y="402" width="134" height="28" rx="6" id="svg-node-input" fill="#fbcfe8" fill-opacity="0.25" stroke="#f472b6" stroke-width="2"/>
+                <text x="142" y="419" fill="#fbcfe8" font-size="10.5" font-weight="700" text-anchor="middle">Output Embedding</text>
+
+                <!-- Line from Output Embedding to + -->
+                <path d="M 142 402 L 142 384" stroke="#94a3b8" stroke-width="1.8" fill="none" marker-end="url(#arrow)"/>
+            </svg>
+        </div>
+    </div>
+
+    <!-- 4. FINAL PREDICTION OUTPUT BANNER -->
+    <div class="output-pred-card">
+        <div>
+            <div style="font-family:'Fredoka', cursive, sans-serif; font-size:1.15rem; color:var(--accent-green);">
+                🎯 Output Prediction: Next Target Hindi Word Generated
+            </div>
+            <div style="font-size:0.88rem; color:var(--text-muted); margin-top:0.2rem;">
+                The Linear & Softmax layer calculates probability scores over the entire Hindi vocabulary dictionary, picking highest probability word: <b style="color:var(--accent-green);" id="predicted-word-display">"हम"</b>
+            </div>
+        </div>
+        <div>
+            <span style="font-family:'JetBrains Mono', monospace; font-size:0.85rem; background:rgba(0,0,0,0.5); padding:0.4rem 0.8rem; border-radius:6px; color:var(--accent-green); border:1px solid rgba(74,222,128,0.4);">
+                Autoregressive Step Output
+            </span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- TARGET TRANSLATION TOKENS & POSITIONAL DATA ---
+    const TARGET_EMBEDDINGS = [
+        { word: "<SOS>", id: 1, pos: 0, vec: [0.71, 0.42, 0.18, 1.21] },
+        { word: "हम", id: 402, pos: 1, vec: [0.95, 0.88, -0.32, 1.45] },
+        { word: "दोस्त", id: 819, pos: 2, vec: [1.62, -0.15, 0.92, 1.38] }
+    ];
+
+    const TARGET_PE = [
+        { word: "<SOS>", pos: 0, pe: [0.00, 1.00, 0.00, 1.00] },
+        { word: "हम", pos: 1, pe: [0.84, 0.54, 0.10, 0.99] },
+        { word: "दोस्त", pos: 2, pe: [0.91, -0.42, 0.20, 0.98] }
+    ];
+
+    // ENCODER SOURCE VECTORS (K_enc, V_enc from "we are friends")
+    const ENCODER_SOURCE_VECS = [
+        { word: "we", vec: [1.22, 0.88, 0.48, 1.42] },
+        { word: "are", vec: [0.49, 1.41, -0.10, 1.09] },
+        { word: "friends", vec: [1.96, 0.04, 0.91, 1.28] }
+    ];
+
+    // --- 6 DECODERS DATA ENGINE ---
+    const DECODER_BLOCKS_DATA = {
+        1: {
+            inputVecs: TARGET_EMBEDDINGS,
+            combinedVecs: [
+                { word: "<SOS>", vec: [0.71, 1.42, 0.18, 2.21] },
+                { word: "हम", vec: [1.79, 1.42, -0.22, 2.44] },
+                { word: "दोस्त", vec: [2.53, -0.57, 1.12, 2.36] }
+            ],
+            maskedAttn: [
+                [ 1.00, 0, 0 ],    // <SOS> only attends to <SOS>
+                [ 0.45, 0.55, 0 ], // "हम" attends to <SOS> and "हम" (FUTURE "दोस्त" MASKED OUT -inf -> 0%)
+                [ 0.30, 0.40, 0.30 ]// "दोस्त" attends to <SOS>, "हम", and "दोस्त"
+            ],
+            crossAttn: [
+                [ 0.65, 0.20, 0.15 ], // <SOS> cross-attends to "we", "are", "friends"
+                [ 0.75, 0.10, 0.15 ], // "हम" cross-attends heavily to "we" (75%)
+                [ 0.20, 0.10, 0.70 ]  // "दोस्त" cross-attends heavily to "friends" (70%)
+            ],
+            vocabProbs: [
+                { word: "हम", prob: "88.5%" },
+                { word: "दोस्त", prob: "7.2%" },
+                { word: "हैं", prob: "2.8%" },
+                { word: "मैं", prob: "1.5%" }
+            ],
+            predictedWord: "हम"
+        },
+        2: {
+            inputVecs: [
+                { word: "<SOS>", vec: [0.82, 1.35, 0.25, 2.10] },
+                { word: "हम", vec: [1.85, 1.35, -0.15, 2.38] },
+                { word: "दोस्त", vec: [2.45, -0.48, 1.05, 2.28] }
+            ],
+            maskedAttn: [
+                [ 1.00, 0, 0 ],
+                [ 0.40, 0.60, 0 ],
+                [ 0.25, 0.45, 0.30 ]
+            ],
+            crossAttn: [
+                [ 0.60, 0.25, 0.15 ],
+                [ 0.80, 0.08, 0.12 ],
+                [ 0.15, 0.10, 0.75 ]
+            ],
+            vocabProbs: [
+                { word: "दोस्त", prob: "91.2%" },
+                { word: "हैं", prob: "5.4%" },
+                { word: "हम", prob: "2.1%" },
+                { word: "मित्र", prob: "1.3%" }
+            ],
+            predictedWord: "दोस्त"
+        },
+        3: {
+            inputVecs: [
+                { word: "<SOS>", vec: [0.88, 1.28, 0.31, 2.02] },
+                { word: "हम", vec: [1.91, 1.28, -0.08, 2.32] },
+                { word: "दोस्त", vec: [2.38, -0.40, 0.98, 2.21] }
+            ],
+            maskedAttn: [
+                [ 1.00, 0, 0 ],
+                [ 0.35, 0.65, 0 ],
+                [ 0.20, 0.50, 0.30 ]
+            ],
+            crossAttn: [
+                [ 0.55, 0.30, 0.15 ],
+                [ 0.82, 0.06, 0.12 ],
+                [ 0.10, 0.12, 0.78 ]
+            ],
+            vocabProbs: [
+                { word: "हैं", prob: "94.6%" },
+                { word: "हो", prob: "3.2%" },
+                { word: "दोस्त", prob: "1.4%" },
+                { word: "<EOS>", prob: "0.8%" }
+            ],
+            predictedWord: "हैं"
+        },
+        4: {
+            inputVecs: [
+                { word: "<SOS>", vec: [0.92, 1.22, 0.36, 1.95] },
+                { word: "हम", vec: [1.96, 1.22, -0.02, 2.26] },
+                { word: "दोस्त", vec: [2.32, -0.34, 0.92, 2.15] }
+            ],
+            maskedAttn: [
+                [ 1.00, 0, 0 ],
+                [ 0.30, 0.70, 0 ],
+                [ 0.18, 0.52, 0.30 ]
+            ],
+            crossAttn: [
+                [ 0.50, 0.35, 0.15 ],
+                [ 0.85, 0.05, 0.10 ],
+                [ 0.08, 0.14, 0.78 ]
+            ],
+            vocabProbs: [
+                { word: "हैं", prob: "96.2%" },
+                { word: "<EOS>", prob: "2.5%" },
+                { word: "हो", prob: "0.8%" },
+                { word: "दोस्त", prob: "0.5%" }
+            ],
+            predictedWord: "हैं"
+        },
+        5: {
+            inputVecs: [
+                { word: "<SOS>", vec: [0.96, 1.18, 0.40, 1.90] },
+                { word: "हम", vec: [2.01, 1.18, 0.04, 2.21] },
+                { word: "दोस्त", vec: [2.26, -0.28, 0.86, 2.10] }
+            ],
+            maskedAttn: [
+                [ 1.00, 0, 0 ],
+                [ 0.28, 0.72, 0 ],
+                [ 0.15, 0.55, 0.30 ]
+            ],
+            crossAttn: [
+                [ 0.48, 0.38, 0.14 ],
+                [ 0.87, 0.04, 0.09 ],
+                [ 0.06, 0.15, 0.79 ]
+            ],
+            vocabProbs: [
+                { word: "<EOS>", prob: "97.5%" },
+                { word: "हैं", prob: "1.8%" },
+                { word: ".", prob: "0.5%" },
+                { word: "!", prob: "0.2%" }
+            ],
+            predictedWord: "<EOS>"
+        },
+        6: {
+            inputVecs: [
+                { word: "<SOS>", vec: [1.00, 1.12, 0.45, 1.85] },
+                { word: "हम", vec: [2.05, 1.12, 0.10, 2.15] },
+                { word: "दोस्त", vec: [2.20, -0.22, 0.80, 2.05] }
+            ],
+            maskedAttn: [
+                [ 1.00, 0, 0 ],
+                [ 0.25, 0.75, 0 ],
+                [ 0.12, 0.58, 0.30 ]
+            ],
+            crossAttn: [
+                [ 0.45, 0.40, 0.15 ],
+                [ 0.90, 0.03, 0.07 ],
+                [ 0.05, 0.15, 0.80 ]
+            ],
+            vocabProbs: [
+                { word: "<EOS>", prob: "98.9%" },
+                { word: "हैं", prob: "0.8%" },
+                { word: ".", prob: "0.2%" },
+                { word: "!", prob: "0.1%" }
+            ],
+            predictedWord: "<EOS>"
+        }
+    };
+
+    let selectedDecNum = 1;
+    let selectedSubStep = 0;
+    let pipelineAnimTimer = null;
+    let isPipelineRunning = false;
+
+    function selectDecoderBlock(decNum) {
+        selectedDecNum = decNum;
+        
+        for (let i = 1; i <= 6; i++) {
+            const tab = document.getElementById(`tab-dec-${i}`);
+            tab.classList.toggle('active-tab', i === decNum);
+        }
+
+        document.getElementById('current-decoder-title').innerText = `Decoder Block ${decNum}`;
+        document.getElementById('svg-stack-lbl').innerText = `N = ${decNum}x`;
+
+        renderCurrentSubStep();
+    }
+
+    function goToSubStep(stepIdx) {
+        selectedSubStep = stepIdx;
+        
+        document.querySelectorAll('.step-btn').forEach((btn, i) => {
+            btn.classList.toggle('active', i === stepIdx);
+        });
+
+        renderCurrentSubStep();
+    }
+
+    function renderCurrentSubStep() {
+        const decData = DECODER_BLOCKS_DATA[selectedDecNum];
+        const stepTitleEl = document.getElementById('step-title');
+        const stepCounterEl = document.getElementById('step-counter');
+        const explainEl = document.getElementById('step-explain');
+        const workspaceEl = document.getElementById('step-workspace');
+
+        stepCounterEl.innerText = `Step ${selectedSubStep + 1} of 9`;
+        document.getElementById('predicted-word-display').innerText = `"${decData.predictedWord}"`;
+
+        const svgNodes = ['svg-node-input', 'svg-node-pe', 'svg-node-maskedmha', 'svg-node-addnorm1', 'svg-node-cross', 'svg-node-addnorm2', 'svg-node-ffn', 'svg-node-addnorm3', 'svg-node-linear'];
+        svgNodes.forEach(id => {
+            const node = document.getElementById(id);
+            if (node) node.setAttribute('stroke-width', '2');
+        });
+
+        if (selectedSubStep === 0) {
+            stepTitleEl.innerText = `Step 1: Target Shifted-Right Embeddings (Y_embed)`;
+            document.getElementById('svg-node-input').setAttribute('stroke-width', '3.5');
+            explainEl.innerHTML = `
+                <h4>🔤 Shifted Right Target Tokens ("&lt;SOS&gt;", "हम", "दोस्त")</h4>
+                During generation, the decoder receives target tokens shifted right starting with <code>&lt;SOS&gt;</code> (Start of Sentence).
+            `;
+            workspaceEl.innerHTML = `
+                <table class="vector-table">
+                    <thead>
+                        <tr>
+                            <th>Target Token</th>
+                            <th>Token ID</th>
+                            <th>Target Embedding Vector (Y_embed)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${TARGET_EMBEDDINGS.map(item => `
+                            <tr>
+                                <td class="word-cell">"${item.word}"</td>
+                                <td>${item.id}</td>
+                                <td><span class="vec-chip">[${item.vec.join(', ')}]</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        else if (selectedSubStep === 1) {
+            stepTitleEl.innerText = `Step 2: Positional Encoding Addition (Y = Y_embed + PE)`;
+            document.getElementById('svg-node-pe').setAttribute('stroke-width', '3.5');
+            explainEl.innerHTML = `
+                <h4>📐 Element-Wise Addition: Y = Y_embed + PE</h4>
+                Adds trigonometric positional encodings to target word vectors so target words know their position index (pos = 0, 1, 2).
+            `;
+            workspaceEl.innerHTML = `
+                <table class="vector-table">
+                    <thead>
+                        <tr>
+                            <th>Target Word</th>
+                            <th>Y_embed</th>
+                            <th></th>
+                            <th>Positional Encoding (PE)</th>
+                            <th></th>
+                            <th>Combined Vector (Y)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${TARGET_EMBEDDINGS.map((item, i) => `
+                            <tr>
+                                <td class="word-cell">"${item.word}"</td>
+                                <td>[${item.vec.join(', ')}]</td>
+                                <td style="color:var(--accent-amber); font-weight:700;">+</td>
+                                <td style="color:var(--accent-purple);">[${TARGET_PE[i].pe.join(', ')}]</td>
+                                <td style="color:var(--accent-amber); font-weight:700;">=</td>
+                                <td style="color:var(--accent-green); font-weight:700;">[${decData.combinedVecs[i].vec.join(', ')}]</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        else if (selectedSubStep === 2) {
+            stepTitleEl.innerText = `Step 3: Masked Self-Attention (Causal Masking M)`;
+            document.getElementById('svg-node-maskedmha').setAttribute('stroke-width', '3.5');
+            explainEl.innerHTML = `
+                <h4>🛡️ Causal Masking: Preventing Future Peeking</h4>
+                Formula: <code>Softmax( (Q<sub>dec</sub> &middot; K<sub>dec</sub><sup>T</sup>) / &radic;d<sub>k</sub> + M )</code>
+                <br>Upper triangle positions (future words) are set to <b>-&infin;</b> before Softmax. Softmax turns <code>e<sup>-&infin;</sup> = 0%</code> attention!
+                <br><i>Notice how "हम" is strictly forbidden from seeing future token "दोस्त" (0% marked in red)!</i>
+            `;
+            const words = ["<SOS>", "हम", "दोस्त"];
+            workspaceEl.innerHTML = `
+                <div class="heatmap-grid">
+                    <div></div>
+                    ${words.map(w => `<div style="text-align:center; font-weight:700; color:var(--text-muted);">"${w}"</div>`).join('')}
+                    ${words.map((w1, r) => `
+                        <div class="cell-label">"${w1}"</div>
+                        ${words.map((w2, c) => {
+                            if (c > r) {
+                                return `<div class="heatmap-cell cell-masked" title="Masked Out (-infinity)">0% (Masked)</div>`;
+                            } else {
+                                const val = decData.maskedAttn[r][c];
+                                const pct = (val * 100).toFixed(0) + '%';
+                                return `<div class="heatmap-cell" style="background: rgba(251, 191, 36, ${Math.max(val, 0.2)}); color:${val > 0.5 ? '#000' : '#fff'};">${pct}</div>`;
+                            }
+                        }).join('')}
+                    `).join('')}
+                </div>
+            `;
+        }
+        else if (selectedSubStep === 3) {
+            stepTitleEl.innerText = `Step 4: Add & Norm 1 (LayerNorm)`;
+            document.getElementById('svg-node-addnorm1').setAttribute('stroke-width', '3.5');
+            explainEl.innerHTML = `
+                <h4>➕ Residual Connection + LayerNorm 1</h4>
+                Adds input target vector to Masked Self-Attention output: <code>LayerNorm( Y + MaskedMHA(Y) )</code>.
+            `;
+            workspaceEl.innerHTML = `
+                <div style="background:#070a12; padding:0.85rem; border-radius:0.5rem; border:1px solid var(--card-border); font-family:'JetBrains Mono', monospace; font-size:0.85rem;">
+                    <div style="color:var(--accent-amber);">Target Y: [${decData.combinedVecs[0].vec.join(', ')}]</div>
+                    <div style="color:var(--accent-purple);">+ Masked MHA: [0.28, 0.14, 0.32, 0.10]</div>
+                    <div style="color:var(--accent-green); font-weight:700; margin-top:0.4rem;">= LayerNorm 1 Out: [0.88, 1.25, 0.31, 2.10]</div>
+                </div>
+            `;
+        }
+        else if (selectedSubStep === 4) {
+            stepTitleEl.innerText = `Step 5: Encoder-Decoder Cross-Attention`;
+            document.getElementById('svg-node-cross').setAttribute('stroke-width', '3.5');
+            explainEl.innerHTML = `
+                <h4>🌉 Cross-Attention: Bridging Source ("we are friends") & Target ("हम दोस्त")</h4>
+                <b>Crucial Rule:</b>
+                <br>• <b>Queries (Q<sub>dec</sub>):</b> Come from Decoder target words (e.g. "हम" or "दोस्त").
+                <br>• <b>Keys (K<sub>enc</sub>) & Values (V<sub>enc</sub>):</b> Come from <b>Encoder final output Z_enc</b> ("we", "are", "friends")!
+                <br><i>Notice how target word <b>"हम"</b> pays <b>75% Cross-Attention</b> to source word <b>"we"</b>!</i>
+            `;
+            const decWords = ["<SOS>", "हम", "दोस्त"];
+            const encWords = ["we", "are", "friends"];
+            workspaceEl.innerHTML = `
+                <div class="heatmap-grid">
+                    <div style="font-size:0.75rem; color:var(--accent-blue); font-weight:700;">Q(Dec) \\ K(Enc)</div>
+                    ${encWords.map(w => `<div style="text-align:center; font-weight:700; color:var(--accent-blue);">"${w}"</div>`).join('')}
+                    ${decWords.map((w1, r) => `
+                        <div class="cell-label">"${w1}"</div>
+                        ${encWords.map((w2, c) => {
+                            const val = decData.crossAttn[r][c];
+                            const pct = (val * 100).toFixed(0) + '%';
+                            return `<div class="heatmap-cell" style="background: rgba(74, 222, 128, ${Math.max(val, 0.2)}); color:${val > 0.5 ? '#000' : '#fff'};">${pct}</div>`;
+                        }).join('')}
+                    `).join('')}
+                </div>
+            `;
+        }
+        else if (selectedSubStep === 5) {
+            stepTitleEl.innerText = `Step 6: Add & Norm 2 (LayerNorm)`;
+            document.getElementById('svg-node-addnorm2').setAttribute('stroke-width', '3.5');
+            explainEl.innerHTML = `
+                <h4>➕ Residual Connection + LayerNorm 2</h4>
+                Adds LayerNorm 1 output to Cross-Attention output: <code>LayerNorm( Output1 + CrossAttn(Output1) )</code>.
+            `;
+            workspaceEl.innerHTML = `
+                <div style="background:#070a12; padding:0.85rem; border-radius:0.5rem; border:1px solid var(--card-border); font-family:'JetBrains Mono', monospace; font-size:0.85rem;">
+                    <div style="color:var(--accent-green); font-weight:700;">LayerNorm 2 Out: [1.15, 1.42, 0.48, 2.25]</div>
+                </div>
+            `;
+        }
+        else if (selectedSubStep === 6) {
+            stepTitleEl.innerText = `Step 7: Feed-Forward Network (FFNN)`;
+            document.getElementById('svg-node-ffn').setAttribute('stroke-width', '3.5');
+            explainEl.innerHTML = `
+                <h4>🧠 Position-wise Feed-Forward Network</h4>
+                Refines cross-lingual features: <code>FFN(Z) = max(0, Z &middot; W1 + b1) &middot; W2 + b2</code>.
+            `;
+            workspaceEl.innerHTML = `
+                <div style="background:#070a12; padding:0.85rem; border-radius:0.5rem; border:1px solid var(--card-border); font-size:0.85rem;">
+                    <div style="color:var(--accent-blue);">Linear Layer 1 (Expands dim 4 &rarr; 16)</div>
+                    <div style="color:var(--accent-amber);">&darr; ReLU Activation</div>
+                    <div style="color:var(--accent-green);">Linear Layer 2 (Compresses back 16 &rarr; 4)</div>
+                </div>
+            `;
+        }
+        else if (selectedSubStep === 7) {
+            stepTitleEl.innerText = `Step 8: Add & Norm 3 (LayerNorm)`;
+            document.getElementById('svg-node-addnorm3').setAttribute('stroke-width', '3.5');
+            explainEl.innerHTML = `
+                <h4>➕ Final Residual Connection & Normalization</h4>
+                LayerNorm( Output2 + FFN(Output2) ). Produces vector Z_dec ready for vocabulary prediction!
+            `;
+            workspaceEl.innerHTML = `
+                <div style="background:#070a12; padding:0.85rem; border-radius:0.5rem; border:1px solid var(--card-border); font-family:'JetBrains Mono', monospace; font-size:0.85rem;">
+                    <div style="color:var(--accent-purple); font-weight:700;">Final Z_dec Out (Decoder Block ${selectedDecNum}): [1.28, 1.55, 0.52, 2.38]</div>
+                </div>
+            `;
+        }
+        else if (selectedSubStep === 8) {
+            stepTitleEl.innerText = `Step 9: Linear Layer & Softmax Vocabulary Prediction`;
+            document.getElementById('svg-node-linear').setAttribute('stroke-width', '3.5');
+            explainEl.innerHTML = `
+                <h4>🎯 Predicting Target Hindi Word Over Vocabulary</h4>
+                The Linear Layer projects Z_dec vector to full Hindi vocabulary size. Softmax produces probability scores!
+            `;
+            workspaceEl.innerHTML = `
+                <table class="vector-table">
+                    <thead>
+                        <tr>
+                            <th>Candidate Hindi Word</th>
+                            <th>Softmax Probability Score</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${decData.vocabProbs.map((item, idx) => `
+                            <tr style="${idx === 0 ? 'background: rgba(74, 222, 128, 0.12);' : ''}">
+                                <td class="word-cell" style="font-size:1rem;">"${item.word}"</td>
+                                <td style="color:${idx === 0 ? 'var(--accent-green)' : 'var(--text-main)'}; font-weight:700;">${item.prob}</td>
+                                <td>${idx === 0 ? '<span style="color:var(--accent-green); font-weight:700;">✅ Selected Next Word</span>' : 'Filtered Out'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+    }
+
+    function toggleFullPipelineAnimation() {
+        if (isPipelineRunning) {
+            clearInterval(pipelineAnimTimer);
+            isPipelineRunning = false;
+            document.getElementById('btn-full-run').innerText = "🚀 Run Full 6-Decoder Deep Pipeline Animation";
+            return;
+        }
+
+        isPipelineRunning = true;
+        document.getElementById('btn-full-run').innerText = "⏸️ Pause Pipeline Animation";
+
+        let currentDec = selectedDecNum;
+        let currentStepIdx = selectedSubStep;
+
+        pipelineAnimTimer = setInterval(() => {
+            currentStepIdx++;
+            if (currentStepIdx > 8) {
+                currentStepIdx = 0;
+                currentDec++;
+                if (currentDec > 6) {
+                    currentDec = 1;
+                }
+            }
+
+            selectDecoderBlock(currentDec);
+            goToSubStep(currentStepIdx);
+
+            for (let i = 1; i <= 6; i++) {
+                const tab = document.getElementById(`tab-dec-${i}`);
+                if (i < currentDec) {
+                    tab.className = "dec-tab done-tab";
+                } else if (i === currentDec) {
+                    tab.className = "dec-tab active-tab";
+                } else {
+                    tab.className = "dec-tab";
+                }
+            }
+        }, 1600);
+    }
+
+    function resetPipeline() {
+        if (isPipelineRunning) {
+            clearInterval(pipelineAnimTimer);
+            isPipelineRunning = false;
+            document.getElementById('btn-full-run').innerText = "🚀 Run Full 6-Decoder Deep Pipeline Animation";
+        }
+        for (let i = 1; i <= 6; i++) {
+            const tab = document.getElementById(`tab-dec-${i}`);
+            tab.className = i === 1 ? "dec-tab active-tab" : "dec-tab";
+        }
+        selectDecoderBlock(1);
+        goToSubStep(0);
+    }
+
+    // Initialize
+    selectDecoderBlock(1);
+</script>
+</body>
+</html>

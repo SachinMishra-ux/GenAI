@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How LLMs Pick the Next Word | Temperature, Top-K & Top-P</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card-bg: #161b22;
+            --card-border: #30363d;
+            --accent-temp: #ff7b72;
+            --accent-topk: #79c0ff;
+            --accent-topp: #56d364;
+            --accent-yellow: #e3b341;
+            --accent-purple: #d2a8ff;
+            --text-main: #f0f6fc;
+            --text-muted: #8b949e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            padding: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Title Area */
+        header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .title-badge {
+            display: inline-block;
+            background: rgba(210, 168, 255, 0.15);
+            color: var(--accent-purple);
+            border: 1px solid rgba(210, 168, 255, 0.4);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        h1 {
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.4rem;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1rem;
+            max-width: 750px;
+            margin: 0 auto;
+        }
+
+        /* Top Concept Cards */
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 800px) {
+            .concept-grid { grid-template-columns: 1fr; }
+        }
+
+        .concept-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            position: relative;
+        }
+
+        .concept-card.temp-card { border-top: 4px solid var(--accent-temp); }
+        .concept-card.topk-card { border-top: 4px solid var(--accent-topk); }
+        .concept-card.topp-card { border-top: 4px solid var(--accent-topp); }
+
+        .concept-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .concept-def {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+
+        .concept-tag {
+            display: inline-block;
+            margin-top: 0.5rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        /* Layout Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 1.25rem;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        .panel-title {
+            font-family: 'Fredoka', cursive, sans-serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* Preset Buttons */
+        .presets {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .btn-preset {
+            flex: 1;
+            background: #21262d;
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 0.4rem 0.2rem;
+            border-radius: 0.4rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .btn-preset:hover {
+            background: #30363d;
+            color: var(--text-main);
+        }
+
+        .btn-preset.active {
+            background: rgba(121, 192, 255, 0.15);
+            border-color: var(--accent-topk);
+            color: var(--accent-topk);
+        }
+
+        /* Controls */
+        .control-item {
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .control-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .control-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.3rem;
+        }
+
+        .control-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .val-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            background: #0d1117;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #30363d;
+            outline: none;
+            -webkit-appearance: none;
+            margin: 0.4rem 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        #temp-slider::-webkit-slider-thumb { background: var(--accent-temp); }
+        #topk-slider::-webkit-slider-thumb { background: var(--accent-topk); }
+        #topp-slider::-webkit-slider-thumb { background: var(--accent-topp); }
+
+        .control-hint {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        /* Step-by-Step Flow Banner */
+        .flow-banner {
+            background: #0d1117;
+            border: 1px solid var(--card-border);
+            border-left: 4px solid var(--accent-purple);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .flow-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--accent-purple);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .flow-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+        }
+
+        .flow-step-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.4rem;
+            color: var(--text-main);
+        }
+
+        .step-num {
+            font-weight: 700;
+            font-size: 0.75rem;
+            padding: 0.05rem 0.35rem;
+            border-radius: 3px;
+            background: #21262d;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        /* Prompt Selector */
+        .prompt-row {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        select {
+            flex: 1;
+            background: #0d1117;
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 0.45rem 0.6rem;
+            border-radius: 0.4rem;
+            font-family: inherit;
+            font-size: 0.85rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* Bar Chart Container */
+        .bars-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .word-row {
+            display: grid;
+            grid-template-columns: 120px 1fr 70px 90px;
+            align-items: center;
+            gap: 0.6rem;
+            background: #0d1117;
+            padding: 0.45rem 0.75rem;
+            border-radius: 0.4rem;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            transition: all 0.2s ease;
+        }
+
+        @media (max-width: 600px) {
+            .word-row {
+                grid-template-columns: 90px 1fr 50px 70px;
+                gap: 0.4rem;
+            }
+        }
+
+        .word-row.cut-out {
+            opacity: 0.35;
+            filter: grayscale(90%);
+        }
+
+        .word-row.picked-winner {
+            border-color: var(--accent-yellow);
+            background: rgba(227, 179, 65, 0.15);
+            box-shadow: 0 0 10px rgba(227, 179, 65, 0.3);
+        }
+
+        .word-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bar-container {
+            height: 18px;
+            background: #21262d;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .fill-eligible {
+            background: linear-gradient(90deg, #56d364 0%, #79c0ff 100%);
+        }
+
+        .fill-eliminated {
+            background: #484f58;
+        }
+
+        .prob-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .status-badge {
+            font-size: 0.7rem;
+            padding: 0.1rem 0.35rem;
+            border-radius: 3px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .badge-kept { background: rgba(86, 211, 100, 0.15); color: var(--accent-topp); }
+        .badge-topk-cut { background: rgba(121, 192, 255, 0.15); color: var(--accent-topk); }
+        .badge-topp-cut { background: rgba(255, 123, 114, 0.15); color: var(--accent-temp); }
+
+        /* Generator Box */
+        .gen-controls {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-gen {
+            flex: 1;
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 0.65rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            transition: background 0.2s ease;
+        }
+
+        .btn-gen:hover { background: #2ea043; }
+
+        .btn-clear {
+            background: #21262d;
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 0.65rem 0.85rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .btn-clear:hover { color: var(--text-main); background: #30363d; }
+
+        .story-output {
+            background: #0d1117;
+            border: 1px solid var(--card-border);
+            border-radius: 0.5rem;
+            padding: 0.85rem;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            min-height: 60px;
+        }
+
+        .word-tag {
+            display: inline-block;
+            padding: 0.1rem 0.35rem;
+            margin: 0 0.15rem;
+            border-radius: 4px;
+            background: rgba(227, 179, 65, 0.2);
+            color: var(--accent-yellow);
+            font-weight: 700;
+            border: 1px solid rgba(227, 179, 65, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="title-badge">🧠 Beginner-Friendly LLM Visualizer</div>
+        <h1>How an AI Chooses the Next Word</h1>
+        <p class="subtitle">When an AI writes a sentence, it scores thousands of possible words. Parameters like <b>Temperature</b>, <b>Top-K</b>, and <b>Top-P</b> control which words get picked!</p>
+    </header>
+
+    <!-- 3 Core Definitions for 10-15 Year Olds -->
+    <div class="concept-grid">
+        <div class="concept-card temp-card">
+            <div class="concept-header" style="color: var(--accent-temp);">
+                <span>🔥 Temperature</span>
+            </div>
+            <div class="concept-def">
+                <b>What it does:</b> Controls how adventurous or unpredictable the AI is.
+                <br>• <b>Low Temp (0.1):</b> Safe & repetitive. AI almost always picks the #1 top word.
+                <br>• <b>High Temp (1.5):</b> Wild & creative. Spreads scores out so rare words can win!
+            </div>
+            <span class="concept-tag" style="color: var(--accent-temp);">Rule: Boosts or levels out word scores</span>
+        </div>
+
+        <div class="concept-card topk-card">
+            <div class="concept-header" style="color: var(--accent-topk);">
+                <span>📊 Top-K</span>
+            </div>
+            <div class="concept-def">
+                <b>What it does:</b> A strict limit on the number of allowed candidate words.
+                <br>• <b>Top-K = 3:</b> Only the top 3 highest-scoring words are kept. All other words are thrown straight into the trash bin!
+            </div>
+            <span class="concept-tag" style="color: var(--accent-topk);">Rule: Hard cap on total candidate words</span>
+        </div>
+
+        <div class="concept-card topp-card">
+            <div class="concept-header" style="color: var(--accent-topp);">
+                <span>🎯 Top-P (Nucleus)</span>
+            </div>
+            <div class="concept-def">
+                <b>What it does:</b> A dynamic confidence target (e.g., 90%).
+                <br>• Keeps adding top words until their total probability adds up to <b>P%</b>, then chops off the rest.
+                <br>• Automatically shrinks when AI is sure, expands when AI is unsure!
+            </div>
+            <span class="concept-tag" style="color: var(--accent-topp);">Rule: Target cumulative percentage cutoff</span>
+        </div>
+    </div>
+
+    <!-- Main Interactive Grid -->
+    <div class="main-grid">
+        <!-- Control Panel -->
+        <div class="panel">
+            <div class="panel-title">
+                <span>🎛️ Adjust Parameters</span>
+            </div>
+
+            <!-- Quick Presets -->
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem;">Try Presets:</div>
+            <div class="presets">
+                <button class="btn-preset" onclick="applyPreset('robot')">🤖 Super Robot (T=0.1)</button>
+                <button class="btn-preset active" id="preset-balanced" onclick="applyPreset('balanced')">⚖️ Balanced (T=0.7)</button>
+                <button class="btn-preset" onclick="applyPreset('creative')">🎨 Creative (T=1.4)</button>
+            </div>
+
+            <!-- Temperature Slider -->
+            <div class="control-item">
+                <div class="control-head">
+                    <span class="control-name" style="color: var(--accent-temp);">🔥 Temperature (T)</span>
+                    <span class="val-badge" id="lbl-temp" style="color: var(--accent-temp);">0.70</span>
+                </div>
+                <input type="range" id="temp-slider" min="0.1" max="2.0" step="0.05" value="0.70" oninput="updateAll()">
+                <div class="control-hint">Low = Focused/Boring | High = Creative/Wild</div>
+            </div>
+
+            <!-- Top-K Slider -->
+            <div class="control-item">
+                <div class="control-head">
+                    <span class="control-name" style="color: var(--accent-topk);">📊 Top-K</span>
+                    <span class="val-badge" id="lbl-topk" style="color: var(--accent-topk);">5</span>
+                </div>
+                <input type="range" id="topk-slider" min="1" max="8" step="1" value="5" oninput="updateAll()">
+                <div class="control-hint">Keep top K words, chop off ranks past K</div>
+            </div>
+
+            <!-- Top-P Slider -->
+            <div class="control-item">
+                <div class="control-head">
+                    <span class="control-name" style="color: var(--accent-topp);">🎯 Top-P (Nucleus)</span>
+                    <span class="val-badge" id="lbl-topp" style="color: var(--accent-topp);">0.85</span>
+                </div>
+                <input type="range" id="topp-slider" min="0.10" max="1.00" step="0.05" value="0.85" oninput="updateAll()">
+                <div class="control-hint">Stop adding words once cumulative sum reaches P%</div>
+            </div>
+        </div>
+
+        <!-- Visualization & Pipeline View -->
+        <div class="panel">
+            <div class="panel-title">
+                <span>🔬 Step-by-Step Next Word Generation</span>
+            </div>
+
+            <!-- Real-time Step-by-step Flow Explanation -->
+            <div class="flow-banner">
+                <div class="flow-title">
+                    <span>⚡ What happens under the hood right now?</span>
+                </div>
+                <div class="flow-steps" id="flow-steps">
+                    <!-- Injected by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Prompt Selector -->
+            <div class="prompt-row">
+                <span style="font-size: 0.85rem; color: var(--text-muted);">Prompt:</span>
+                <select id="prompt-select" onchange="resetAndUpdate()">
+                    <option value="weather">"The weather today is surprisingly..."</option>
+                    <option value="code">"When writing python code, remember to..."</option>
+                    <option value="cat">"The cat suddenly jumped onto the..."</option>
+                </select>
+            </div>
+
+            <!-- Live Probability Bar Chart -->
+            <div class="bars-wrapper" id="bars-wrapper">
+                <!-- Bar items injected by JS -->
+            </div>
+
+            <!-- Action Controls -->
+            <div class="gen-controls">
+                <button class="btn-gen" onclick="pickNextWord()">
+                    <span>🎲 Roll the Dice & Pick Next Word</span>
+                </button>
+                <button class="btn-clear" onclick="clearGeneratedText()">
+                    <span>🔄 Clear Sentence</span>
+                </button>
+            </div>
+
+            <!-- Generated Sentence Output -->
+            <div class="story-output">
+                <span style="color: var(--text-muted);" id="prompt-text">The weather today is surprisingly...</span>
+                <span id="generated-words"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const DATASETS = {
+        weather: {
+            prompt: "The weather today is surprisingly...",
+            candidates: [
+                { word: "sunny", logit: 4.5 },
+                { word: "warm", logit: 3.8 },
+                { word: "nice", logit: 3.3 },
+                { word: "cold", logit: 2.6 },
+                { word: "chilly", logit: 2.0 },
+                { word: "mysterious", logit: 1.2 },
+                { word: "spicy", logit: 0.3 },
+                { word: "banana-flavored", logit: -1.2 }
+            ]
+        },
+        code: {
+            prompt: "When writing python code, remember to...",
+            candidates: [
+                { word: "indent correctly", logit: 4.6 },
+                { word: "test functions", logit: 3.9 },
+                { word: "add comments", logit: 3.4 },
+                { word: "check typos", logit: 2.7 },
+                { word: "use variables", logit: 2.1 },
+                { word: "ask ChatGPT", logit: 1.1 },
+                { word: "pray for luck", logit: 0.4 },
+                { word: "dance around", logit: -1.5 }
+            ]
+        },
+        cat: {
+            prompt: "The cat suddenly jumped onto the...",
+            candidates: [
+                { word: "kitchen counter", logit: 4.4 },
+                { word: "cozy sofa", logit: 3.9 },
+                { word: "wooden table", logit: 3.3 },
+                { word: "tall bookshelf", logit: 2.7 },
+                { word: "window sill", logit: 2.2 },
+                { word: "sleeping dog", logit: 1.4 },
+                { word: "chandelier", logit: 0.5 },
+                { word: "flying saucer", logit: -1.1 }
+            ]
+        }
+    };
+
+    let selectedPromptKey = 'weather';
+    let lastWinnerIdx = -1;
+    let currentCalculatedItems = [];
+
+    function resetAndUpdate() {
+        selectedPromptKey = document.getElementById('prompt-select').value;
+        clearGeneratedText();
+        updateAll();
+    }
+
+    function clearGeneratedText() {
+        document.getElementById('prompt-text').innerText = DATASETS[selectedPromptKey].prompt;
+        document.getElementById('generated-words').innerHTML = '';
+        lastWinnerIdx = -1;
+        updateAll();
+    }
+
+    function applyPreset(preset) {
+        document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+        if (preset === 'robot') {
+            document.getElementById('temp-slider').value = 0.10;
+            document.getElementById('topk-slider').value = 2;
+            document.getElementById('topp-slider').value = 0.50;
+        } else if (preset === 'balanced') {
+            document.getElementById('preset-balanced').classList.add('active');
+            document.getElementById('temp-slider').value = 0.70;
+            document.getElementById('topk-slider').value = 5;
+            document.getElementById('topp-slider').value = 0.85;
+        } else if (preset === 'creative') {
+            document.getElementById('temp-slider').value = 1.40;
+            document.getElementById('topk-slider').value = 8;
+            document.getElementById('topp-slider').value = 0.95;
+        }
+        updateAll();
+    }
+
+    function updateAll() {
+        const temp = parseFloat(document.getElementById('temp-slider').value);
+        const topK = parseInt(document.getElementById('topk-slider').value);
+        const topP = parseFloat(document.getElementById('topp-slider').value);
+
+        document.getElementById('lbl-temp').innerText = temp.toFixed(2);
+        document.getElementById('lbl-topk').innerText = topK;
+        document.getElementById('lbl-topp').innerText = topP.toFixed(2);
+
+        const rawList = DATASETS[selectedPromptKey].candidates;
+
+        // Step 1 & 2: Apply Temperature to Raw Scores (Softmax)
+        const scaledLogits = rawList.map(c => c.logit / temp);
+        const maxLogit = Math.max(...scaledLogits);
+        const expVals = scaledLogits.map(l => Math.exp(l - maxLogit));
+        const sumExp = expVals.reduce((a, b) => a + b, 0);
+
+        let items = rawList.map((c, idx) => ({
+            originalIdx: idx,
+            word: c.word,
+            rawScore: c.logit,
+            tempProb: expVals[idx] / sumExp
+        }));
+
+        // Sort descending by tempProb
+        items.sort((a, b) => b.tempProb - a.tempProb);
+
+        // Step 3: Top-K Cutoff
+        items.forEach((item, rank) => {
+            item.rank = rank + 1;
+            item.cutByTopK = rank >= topK;
+        });
+
+        // Step 4: Top-P Cutoff
+        let runningSum = 0;
+        let pCutoffRank = items.length;
+        for (let i = 0; i < items.length; i++) {
+            runningSum += items[i].tempProb;
+            if (runningSum >= topP && pCutoffRank === items.length) {
+                pCutoffRank = i + 1;
+            }
+        }
+
+        items.forEach((item) => {
+            item.cutByTopP = item.rank > pCutoffRank;
+            item.isEligible = !item.cutByTopK && !item.cutByTopP;
+        });
+
+        // Step 5: Renormalize probabilities of eligible words
+        const sumEligibleProbs = items.reduce((acc, item) => item.isEligible ? acc + item.tempProb : acc, 0);
+        items.forEach(item => {
+            item.finalProb = item.isEligible ? (item.tempProb / sumEligibleProbs) : 0;
+        });
+
+        currentCalculatedItems = items;
+
+        renderFlowExplanation(temp, topK, topP, items);
+        renderBars(items);
+    }
+
+    function renderFlowExplanation(temp, topK, topP, items) {
+        const eligibleCount = items.filter(i => i.isEligible).length;
+        const topItem = items[0];
+
+        let tempText = "";
+        if (temp <= 0.3) {
+            tempText = `<b>Temperature (${temp.toFixed(2)}):</b> Makes scores super steep! <b>"${topItem.word}"</b> dominates with ${(topItem.tempProb*100).toFixed(0)}% probability.`;
+        } else if (temp >= 1.2) {
+            tempText = `<b>Temperature (${temp.toFixed(2)}):</b> Flattens the scores! Even rare words get a real chance of getting picked.`;
+        } else {
+            tempText = `<b>Temperature (${temp.toFixed(2)}):</b> Maintains a balanced, natural spread of word probabilities.`;
+        }
+
+        let kText = `<b>Top-K (${topK}):</b> Keeps the top ${topK} words and chops off rank ${topK+1} to 8.`;
+        
+        let pText = `<b>Top-P (${(topP*100).toFixed(0)}%):</b> Adds words until cumulative probability hits ${(topP*100).toFixed(0)}%. `;
+        if (items.filter(i => i.cutByTopP && !i.cutByTopP_K).length > 0) {
+            pText += `Cuts off words that exceed the target.`;
+        }
+
+        const flowContainer = document.getElementById('flow-steps');
+        flowContainer.innerHTML = `
+            <div class="flow-step-item">
+                <span class="step-num">STEP 1 & 2</span>
+                <span>${tempText}</span>
+            </div>
+            <div class="flow-step-item">
+                <span class="step-num">STEP 3</span>
+                <span>${kText}</span>
+            </div>
+            <div class="flow-step-item">
+                <span class="step-num">STEP 4</span>
+                <span>${pText}</span>
+            </div>
+            <div class="flow-step-item" style="font-weight: 600; color: var(--accent-yellow); margin-top: 0.2rem;">
+                <span class="step-num" style="background: var(--accent-yellow); color: #000;">RESULT</span>
+                <span>Exactly <b>${eligibleCount} out of 8 candidate words</b> passed all filters and are eligible for the final random draw!</span>
+            </div>
+        `;
+    }
+
+    function renderBars(items) {
+        const wrapper = document.getElementById('bars-wrapper');
+        wrapper.innerHTML = '';
+
+        items.forEach(item => {
+            const row = document.createElement('div');
+            let rowClass = 'word-row';
+            if (!item.isEligible) rowClass += ' cut-out';
+            if (item.originalIdx === lastWinnerIdx) rowClass += ' picked-winner';
+            row.className = rowClass;
+
+            let badge = '';
+            if (item.cutByTopK) {
+                badge = `<span class="status-badge badge-topk-cut">✂️ Cut by Top-K</span>`;
+            } else if (item.cutByTopP) {
+                badge = `<span class="status-badge badge-topp-cut">✂️ Cut by Top-P</span>`;
+            } else {
+                badge = `<span class="status-badge badge-kept">✅ Eligible</span>`;
+            }
+
+            const pct = (item.finalProb * 100).toFixed(1);
+            const rawPct = (item.tempProb * 100).toFixed(1);
+
+            row.innerHTML = `
+                <div class="word-name">"${item.word}"</div>
+                <div class="bar-container">
+                    <div class="bar-fill ${item.isEligible ? 'fill-eligible' : 'fill-eliminated'}"
+                         style="width: ${item.isEligible ? Math.max(pct, 4) : Math.max(rawPct, 4)}%;">
+                    </div>
+                </div>
+                <div class="prob-text" style="color: ${item.isEligible ? 'var(--accent-topp)' : 'var(--text-muted)'}">
+                    ${item.isEligible ? pct + '%' : '0.0%'}
+                </div>
+                <div style="text-align: right;">${badge}</div>
+            `;
+
+            wrapper.appendChild(row);
+        });
+    }
+
+    function pickNextWord() {
+        const eligible = currentCalculatedItems.filter(i => i.isEligible);
+        if (eligible.length === 0) return;
+
+        const rand = Math.random();
+        let cum = 0;
+        let winner = eligible[0];
+
+        for (let item of eligible) {
+            cum += item.finalProb;
+            if (rand <= cum) {
+                winner = item;
+                break;
+            }
+        }
+
+        lastWinnerIdx = winner.originalIdx;
+        updateAll();
+
+        const wordsContainer = document.getElementById('generated-words');
+        const tag = document.createElement('span');
+        tag.className = 'word-tag';
+        tag.innerText = winner.word;
+        wordsContainer.appendChild(tag);
+    }
+
+    // Initial load
+    updateAll();
+</script>
+</body>
+</html>
