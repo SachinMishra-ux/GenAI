@@ -2,16 +2,19 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 embedding = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')
 
-document= "Delhi is the capital of India"
-vector = embedding.embed_query(document)
+#document= "Delhi is the capital of India"
+#vector = embedding.embed_query(document)
 
-# documents = [
-#     "Delhi is the capital of India",
-#     "Kolkata is the capital of West Bengal",
-#     "Paris is the capital of France"
-# ]
+documents = [
+    "Delhi is the capital of India",
+    "Kolkata is the capital of West Bengal",
+    "Paris is the capital of France"
+]
 
-# vector = embedding.embed_documents(documents)
+vector = embedding.embed_documents(documents)
 
 print(str(vector))
 print(len(vector))
+
+print(vector[0])
+print(len(vector[0]))

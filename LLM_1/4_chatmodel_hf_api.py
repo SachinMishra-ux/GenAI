@@ -1,10 +1,10 @@
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 llm = HuggingFaceEndpoint(
-    repo_id="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    repo_id="unsloth/Laguna-S-2.1-GGUF",
     task="text-generation"
 )
 

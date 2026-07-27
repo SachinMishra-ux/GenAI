@@ -1,4 +1,5 @@
 from langchain_openai import ChatOpenAI
+#from langchain_anthropic import ChatAnthropic
 from dotenv import load_dotenv
 import os
 
@@ -15,4 +16,4 @@ def get_groq_llm():
 llm = get_groq_llm()
 
 result= llm.invoke("Write a 5 line poem on cricket")
-print(result)
+print(result.content)
