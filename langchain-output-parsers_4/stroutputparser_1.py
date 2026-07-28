@@ -5,7 +5,7 @@ from langchain_core.prompts import PromptTemplate
 load_dotenv()
 
 llm = HuggingFaceEndpoint(
-    repo_id="google/gemma-2-2b-it",
+    repo_id="google/gemma-3-4b-it",
     task="text-generation"
 )
 
@@ -19,7 +19,7 @@ template1 = PromptTemplate(
 
 # 2nd prompt -> summary
 template2 = PromptTemplate(
-    template='Write a 5 line summary on the following text. /n {text}',
+    template='Write a 5 line summary on the following report. /n {text}',
     input_variables=['text']
 )
 

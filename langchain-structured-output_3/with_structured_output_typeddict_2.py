@@ -44,6 +44,7 @@ S-Pen support is unique and useful
 Review by Sachin Mishra
 """)
 
+print(result)
 print(result['name'])
 
 
