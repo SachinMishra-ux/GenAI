@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BERT Visualizer — Encoder-Only Bidirectional Transformer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#07101e;color:#f0f4ff;font-family:Arial,sans-serif;padding:20px;}
+h1{font-size:1.7rem;color:#fff;text-align:center;margin-bottom:4px;}
+.subtitle{text-align:center;color:#94a3b8;font-size:0.9rem;margin-bottom:18px;}
+.hero-badge{display:flex;justify-content:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.hb{padding:6px 16px;border-radius:20px;font-size:0.82rem;font-weight:700;}
+.hb-org{background:rgba(56,189,248,0.15);border:1px solid #38bdf8;color:#38bdf8;}
+.hb-year{background:rgba(74,222,128,0.15);border:1px solid #4ade80;color:#4ade80;}
+.hb-arch{background:rgba(251,191,36,0.15);border:1px solid #fbbf24;color:#fbbf24;}
+.hb-params{background:rgba(192,132,252,0.15);border:1px solid #c084fc;color:#c084fc;}
+.controls{background:#0f1e35;border:1px solid #1e3a5f;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+button{cursor:pointer;border:none;border-radius:7px;font-size:0.86rem;font-weight:700;padding:9px 15px;transition:transform 0.1s;}
+button:active{transform:scale(0.97);}
+.btn-teal{background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;box-shadow:0 4px 12px rgba(13,148,136,0.35);}
+.btn-blue{background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;}
+.btn-gray{background:#1e293b;color:#cbd5e1;border:1px solid #334155;}
+.step-row{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.sc{flex:1;min-width:110px;background:#0f1e35;border:1px solid #1e3a5f;border-radius:7px;padding:8px 6px;text-align:center;font-size:0.74rem;cursor:pointer;transition:all 0.2s;}
+.sc:hover{border-color:#0d9488;}
+.sc.active{border-color:#0d9488;background:rgba(13,148,136,0.12);box-shadow:0 0 10px rgba(13,148,136,0.2);}
+.sc .sn{display:block;font-size:0.6rem;color:#2dd4bf;font-weight:800;margin-bottom:2px;}
+.sc .st{font-weight:700;color:#fff;font-size:0.78rem;}
+.layout{display:grid;grid-template-columns:1fr 290px;gap:16px;}
+@media(max-width:900px){.layout{grid-template-columns:1fr;}}
+.main-panel{background:#0f1e35;border:1px solid #1e3a5f;border-radius:12px;padding:18px;}
+.panel-title{font-size:1rem;font-weight:700;color:#2dd4bf;margin-bottom:12px;}
+.formula-box{background:#060f1e;border:1px solid #1e3a5f;border-left:4px solid #0d9488;border-radius:8px;padding:13px;margin-bottom:14px;font-size:0.84rem;line-height:1.7;}
+.formula-box h4{color:#2dd4bf;font-size:0.9rem;margin-bottom:6px;}
+code{background:#1e293b;padding:2px 6px;border-radius:4px;font-family:'Courier New',monospace;font-size:0.79rem;color:#a5f3fc;}
+.dt{width:100%;border-collapse:collapse;font-size:0.81rem;}
+.dt th{text-align:left;padding:7px 9px;background:#060f1e;color:#94a3b8;border-bottom:1px solid #1e3a5f;}
+.dt td{padding:7px 9px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:top;}
+.dt tr.hl{background:rgba(13,148,136,0.1);}
+.cT{color:#2dd4bf;font-weight:700;} .cG{color:#4ade80;font-weight:700;}
+.cB{color:#38bdf8;font-weight:700;} .cA{color:#fbbf24;font-weight:700;}
+.cP{color:#c084fc;font-weight:700;} .cR{color:#f87171;font-weight:700;}
+/* Architecture diagram styles */
+.arch-svg-wrap{overflow-x:auto;margin:10px 0;}
+/* Tokens row */
+.tok-strip{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0;}
+.tok{padding:5px 9px;border-radius:6px;font-size:0.8rem;font-weight:700;font-family:'Courier New',monospace;}
+.tok-cls{background:rgba(251,191,36,0.2);border:1px solid #fbbf24;color:#fbbf24;}
+.tok-word{background:rgba(56,189,248,0.15);border:1px solid #38bdf8;color:#38bdf8;}
+.tok-mask{background:rgba(248,113,113,0.2);border:2px dashed #f87171;color:#f87171;}
+.tok-sep{background:rgba(192,132,252,0.15);border:1px solid #c084fc;color:#c084fc;}
+.tok-correct{background:rgba(74,222,128,0.2);border:1px solid #4ade80;color:#4ade80;}
+/* attention heatmap */
+.hmap-wrap{overflow-x:auto;}
+.hmap{display:inline-grid;gap:3px;align-items:center;}
+.hc{padding:7px 5px;border-radius:4px;text-align:center;font-weight:700;font-size:0.72rem;min-width:55px;}
+.hl-h{color:#94a3b8;text-align:center;font-size:0.7rem;font-weight:700;}
+.hl-l{font-weight:700;color:#2dd4bf;text-align:right;padding-right:6px;font-size:0.72rem;}
+/* sidebar */
+.sidebar{display:flex;flex-direction:column;gap:12px;}
+.sb{background:#0f1e35;border:1px solid #1e3a5f;border-radius:10px;padding:13px;}
+.sb-t{font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8;margin-bottom:8px;}
+.spec-row{display:flex;justify-content:space-between;font-size:0.8rem;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.spec-lbl{color:#94a3b8;} .spec-val{font-weight:700;color:#2dd4bf;}
+/* bert block diagram */
+.bert-stack{display:flex;flex-direction:column;gap:4px;}
+.bert-block{border-radius:6px;padding:8px 12px;font-size:0.78rem;font-weight:700;border:1.5px solid transparent;text-align:center;}
+.bb-in{background:rgba(251,191,36,0.1);border-color:#fbbf24;color:#fbbf24;}
+.bb-pe{background:rgba(56,189,248,0.1);border-color:#38bdf8;color:#38bdf8;}
+.bb-enc{background:rgba(13,148,136,0.1);border-color:#0d9488;color:#2dd4bf;}
+.bb-out{background:rgba(74,222,128,0.1);border-color:#4ade80;color:#4ade80;}
+.bb-cls{background:rgba(192,132,252,0.1);border-color:#c084fc;color:#c084fc;}
+.bb-arrow{text-align:center;color:#475569;font-size:0.9rem;margin:1px 0;}
+</style>
+</head>
+<body>
+<h1>🤖 BERT — Bidirectional Encoder Representations from Transformers</h1>
+<div class="subtitle">Google AI, 2018 · Devlin et al. · Encoder-Only · Bidirectional Attention · Pre-train → Fine-tune</div>
+<div class="hero-badge">
+  <span class="hb hb-org">🏢 Google AI, 2018</span>
+  <span class="hb hb-year">📄 Devlin et al.</span>
+  <span class="hb hb-arch">🏗️ Encoder-Only</span>
+  <span class="hb hb-params">⚡ 110M–340M params</span>
+</div>
+<div class="controls">
+  <button class="btn-teal" onclick="nextStep()">⏩ Next Step</button>
+  <button class="btn-blue" id="autoBtn" onclick="toggleAuto()">▶ Auto Play</button>
+  <button class="btn-gray" onclick="resetAll()">🔄 Reset</button>
+  <span id="sinfo" style="color:#94a3b8;font-size:0.83rem;"></span>
+</div>
+<div class="step-row">
+  <div class="sc active" id="sc0" onclick="goStep(0)"><span class="sn">STEP 0</span><div class="st">Architecture Overview</div></div>
+  <div class="sc" id="sc1" onclick="goStep(1)"><span class="sn">STEP 1</span><div class="st">Input Representation</div></div>
+  <div class="sc" id="sc2" onclick="goStep(2)"><span class="sn">STEP 2</span><div class="st">Bidirectional Attention</div></div>
+  <div class="sc" id="sc3" onclick="goStep(3)"><span class="sn">STEP 3</span><div class="st">MLM Pre-training</div></div>
+  <div class="sc" id="sc4" onclick="goStep(4)"><span class="sn">STEP 4</span><div class="st">NSP Pre-training</div></div>
+  <div class="sc" id="sc5" onclick="goStep(5)"><span class="sn">STEP 5</span><div class="st">Fine-tuning Tasks</div></div>
+  <div class="sc" id="sc6" onclick="goStep(6)"><span class="sn">STEP 6</span><div class="st">MLM Head (No Decoder!)</div></div>
+  <div class="sc" id="sc7" onclick="goStep(7)"><span class="sn">STEP 7</span><div class="st">Fill-Mask Inference</div></div>
+</div>
+<div class="layout">
+  <div class="main-panel">
+    <div class="panel-title" id="panelTitle">BERT Architecture Overview</div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="workspace"></div>
+  </div>
+  <div class="sidebar">
+    <div class="sb">
+      <div class="sb-t">BERT Model Specs</div>
+      <div class="spec-row"><span class="spec-lbl">Architecture</span><span class="spec-val">Encoder-Only</span></div>
+      <div class="spec-row"><span class="spec-lbl">Attention Type</span><span class="spec-val">Bidirectional</span></div>
+      <div class="spec-row"><span class="spec-lbl">Encoder Layers (Base)</span><span class="spec-val">12</span></div>
+      <div class="spec-row"><span class="spec-lbl">Encoder Layers (Large)</span><span class="spec-val">24</span></div>
+      <div class="spec-row"><span class="spec-lbl">Hidden Dim (Base)</span><span class="spec-val">768</span></div>
+      <div class="spec-row"><span class="spec-lbl">Attention Heads (Base)</span><span class="spec-val">12</span></div>
+      <div class="spec-row"><span class="spec-lbl">Vocabulary Size</span><span class="spec-val">30,522</span></div>
+      <div class="spec-row"><span class="spec-lbl">Tokenizer</span><span class="spec-val">WordPiece</span></div>
+      <div class="spec-row"><span class="spec-lbl">Max Seq Length</span><span class="spec-val">512 tokens</span></div>
+      <div class="spec-row"><span class="spec-lbl">Pre-training tasks</span><span class="spec-val">MLM + NSP</span></div>
+      <div class="spec-row"><span class="spec-lbl">Parameters (Base)</span><span class="spec-val">~110M</span></div>
+      <div class="spec-row"><span class="spec-lbl">Parameters (Large)</span><span class="spec-val">~340M</span></div>
+    </div>
+    <div class="sb">
+      <div class="sb-t">BERT Block Diagram</div>
+      <div class="bert-stack">
+        <div class="bert-block bb-out">Fine-tuning Task Output</div>
+        <div class="bb-arrow">⬇</div>
+        <div class="bert-block bb-cls">[CLS] Embedding → Classifier</div>
+        <div class="bb-arrow">⬆</div>
+        <div class="bert-block bb-enc" id="sb-enc">12× Encoder Block<div style="font-size:0.68rem;color:#94a3b8;font-weight:400;">Self-Attn (Bidirectional) + FFNN + Add&Norm</div></div>
+        <div class="bb-arrow">⬆</div>
+        <div class="bert-block bb-pe">Token + Segment + Position Embeddings</div>
+        <div class="bb-arrow">⬆</div>
+        <div class="bert-block bb-in">[CLS] + Tokens + [SEP] Input</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var STEPS = [
+{
+  title:"BERT Architecture Overview — Encoder-Only Stack",
+  formula:{h:"🏗️ BERT uses ONLY the Encoder from the original Transformer",
+  body:`BERT removes the Decoder entirely. It stacks <b>12 (Base) or 24 (Large) Encoder blocks</b>.<br>
+Each encoder block: <b>Multi-Head Self-Attention (Bidirectional)</b> + <b>FFNN</b> + <b>Add & Norm</b><br><br>
+<b>Key insight:</b> Unlike GPT which predicts the next word (left→right), BERT reads the <i>entire sentence at once</i> in both directions simultaneously.<br>
+This bidirectionality is the #1 architectural difference that makes BERT great for <b>understanding tasks</b> (not generation).`},
+  workspace:`<table class="dt"><thead><tr><th>Component</th><th>BERT Base</th><th>BERT Large</th><th>Purpose</th></tr></thead><tbody>
+<tr class="hl"><td class="cT">Encoder Blocks</td><td><b>12</b></td><td><b>24</b></td><td>Stack of attention + FFNN layers</td></tr>
+<tr><td class="cB">Hidden Dimension (H)</td><td>768</td><td>1024</td><td>Size of all internal vectors</td></tr>
+<tr><td class="cA">Attention Heads</td><td>12</td><td>16</td><td>Parallel attention subspaces</td></tr>
+<tr><td class="cG">FFNN Inner Dim</td><td>3072</td><td>4096</td><td>4× expansion in feed-forward</td></tr>
+<tr><td class="cP">Parameters</td><td>~110M</td><td>~340M</td><td>Learned weight matrices</td></tr>
+</tbody></table>
+<div style="margin-top:12px;background:rgba(13,148,136,0.1);border:1px solid #0d9488;border-radius:8px;padding:10px;font-size:0.84rem;">
+<b class="cT">🔑 Bidirectionality is BERT's superpower:</b> When reading "The bank can guarantee deposits...", BERT can use both left AND right context to determine that "bank" = financial institution vs river bank.<br><br>
+<b class="cA">⚠️ BERT cannot generate text!</b> It only produces embeddings — it needs a task-specific head on top.
+</div>`
+},
+{
+  title:"BERT Input Representation — Token + Segment + Position Embeddings",
+  formula:{h:"📥 Input = WordPiece Tokens + Segment Embeddings + Positional Embeddings",
+  body:`BERT uses 3 separate embeddings added together for each token:<br>
+<code>Input = E_token + E_segment + E_position</code><br><br>
+<b>1. Token Embedding:</b> WordPiece vocab (30,522 tokens), dim=768<br>
+<b>2. Segment Embedding:</b> E_A or E_B — tells BERT which sentence a token belongs to<br>
+<b>3. Position Embedding:</b> Learned absolute position (not sinusoidal like original Transformer)<br><br>
+Special tokens: <code>[CLS]</code> = sentence representation, <code>[SEP]</code> = sentence separator`},
+  workspace:`<div style="font-size:0.82rem;margin-bottom:8px;color:#94a3b8;">Input tokens for sentence pair: "we are friends [SEP] hum dost hain"</div>
+<div class="tok-strip">
+<span class="tok tok-cls">[CLS]</span><span class="tok tok-word">we</span><span class="tok tok-word">are</span><span class="tok tok-word">friends</span><span class="tok tok-sep">[SEP]</span><span class="tok tok-word">hum</span><span class="tok tok-word">dost</span><span class="tok tok-word">hain</span><span class="tok tok-sep">[SEP]</span>
+</div>
+<table class="dt" style="margin-top:10px;"><thead><tr><th>Token</th><th>Token Embed (dim 0–2)</th><th>Segment Embed</th><th>Position Embed</th><th>= Final Input Vec</th></tr></thead><tbody>
+<tr><td class="cA">[CLS]</td><td>[1.0, 0.0, 0.5]</td><td>E_A=[0.1, 0.2]</td><td>pos=0</td><td class="cT">sum ∈ ℝ⁷⁶⁸</td></tr>
+<tr><td class="cB">"we"</td><td>[0.82, 0.55, 0.12]</td><td>E_A=[0.1, 0.2]</td><td>pos=1</td><td class="cT">sum ∈ ℝ⁷⁶⁸</td></tr>
+<tr><td class="cB">"are"</td><td>[0.15, 0.78, -0.62]</td><td>E_A=[0.1, 0.2]</td><td>pos=2</td><td class="cT">sum ∈ ℝ⁷⁶⁸</td></tr>
+<tr><td class="cB">"friends"</td><td>[1.86, -0.54, 1.08]</td><td>E_A=[0.1, 0.2]</td><td>pos=3</td><td class="cT">sum ∈ ℝ⁷⁶⁸</td></tr>
+<tr><td class="cP">[SEP]</td><td>[0.0, 1.0, 0.0]</td><td>E_A=[0.1, 0.2]</td><td>pos=4</td><td class="cT">sum ∈ ℝ⁷⁶⁸</td></tr>
+<tr><td class="cB">"hum"</td><td>[0.95, 0.88, -0.32]</td><td>E_B=[0.5, 0.8]</td><td>pos=5</td><td class="cT">sum ∈ ℝ⁷⁶⁸</td></tr>
+</tbody></table>`
+},
+{
+  title:"BERT Bidirectional Self-Attention — Full Context in Both Directions",
+  formula:{h:"🔁 No Causal Mask! Every token attends to every other token in both directions",
+  body:`BERT's self-attention is identical to the Transformer Encoder — <b>no causal mask applied</b>.<br>
+<code>Attention(Q, K, V) = Softmax(Q·Kᵀ / √d_k) · V</code><br><br>
+In the attention matrix, every cell is populated. Token "are" can see both "we" (left) and "friends" (right) simultaneously.<br>
+<b>This is the opposite of GPT</b> which blocks the upper triangle with <code>-∞</code> mask.`},
+  workspace:`<div style="font-size:0.82rem;margin-bottom:8px;color:#94a3b8;">Full bidirectional attention matrix — ALL cells visible (no masking):</div>
+<div class="hmap-wrap"><div class="hmap" style="grid-template-columns:70px 65px 65px 70px 65px;">
+<div class="hl-h">Q\K</div><div class="hl-h">[CLS]</div><div class="hl-h">"we"</div><div class="hl-h">"are"</div><div class="hl-h">"friends"</div>
+<div class="hl-l">[CLS]</div><div class="hc" style="background:rgba(13,148,136,0.8);color:#000;">45%</div><div class="hc" style="background:rgba(13,148,136,0.35);color:#fff;">20%</div><div class="hc" style="background:rgba(13,148,136,0.25);color:#fff;">15%</div><div class="hc" style="background:rgba(13,148,136,0.35);color:#fff;">20%</div>
+<div class="hl-l">"we"</div><div class="hc" style="background:rgba(13,148,136,0.25);color:#fff;">15%</div><div class="hc" style="background:rgba(13,148,136,0.65);color:#000;">50%</div><div class="hc" style="background:rgba(13,148,136,0.2);color:#fff;">10%</div><div class="hc" style="background:rgba(13,148,136,0.35);color:#fff;">25%</div>
+<div class="hl-l">"are"</div><div class="hc" style="background:rgba(13,148,136,0.15);color:#fff;">10%</div><div class="hc" style="background:rgba(13,148,136,0.35);color:#fff;">20%</div><div class="hc" style="background:rgba(13,148,136,0.65);color:#000;">50%</div><div class="hc" style="background:rgba(13,148,136,0.3);color:#fff;">20%</div>
+<div class="hl-l">"friends"</div><div class="hc" style="background:rgba(13,148,136,0.2);color:#fff;">15%</div><div class="hc" style="background:rgba(13,148,136,0.35);color:#fff;">25%</div><div class="hc" style="background:rgba(13,148,136,0.25);color:#fff;">15%</div><div class="hc" style="background:rgba(13,148,136,0.65);color:#000;">45%</div>
+</div></div>
+<div style="margin-top:10px;background:rgba(13,148,136,0.1);border:1px solid #0d9488;border-radius:7px;padding:10px;font-size:0.83rem;">
+<b class="cT">✅ Full matrix = Bidirectional:</b> "are" attends to "we" (20%) AND "friends" (20%) simultaneously.<br>
+<b class="cR">GPT would block:</b> "are" could only see "we" (left), not "friends" (right).
+</div>`
+},
+{
+  title:"BERT Pre-training Task 1 — Masked Language Model (MLM)",
+  formula:{h:"🎭 MLM: Randomly mask 15% of tokens, predict the masked words",
+  body:`BERT masks 15% of input tokens and trains to predict them from surrounding context:<br>
+• <b>80%</b> of chosen tokens → replaced with <code>[MASK]</code><br>
+• <b>10%</b> → replaced with a random word<br>
+• <b>10%</b> → kept unchanged (but still predicted)<br><br>
+<b>Loss:</b> Cross-Entropy on the [MASK] positions only<br>
+<code>Loss_MLM = −Σ log P(y_true | context_bidirectional)</code><br><br>
+<b>Why not always mask?</b> The model never sees [MASK] at fine-tuning time — mixing prevents mismatch.`},
+  workspace:`<div style="font-size:0.82rem;margin-bottom:8px;color:#94a3b8;">Example: 15% of "we are friends" is masked before feeding to BERT:</div>
+<div style="margin-bottom:10px;"><b style="font-size:0.82rem;color:#94a3b8;">Input to BERT:</b>
+<div class="tok-strip" style="margin-top:6px;">
+<span class="tok tok-cls">[CLS]</span><span class="tok tok-word">we</span><span class="tok tok-mask">[MASK]</span><span class="tok tok-word">friends</span><span class="tok tok-sep">[SEP]</span>
+</div></div>
+<div style="margin-bottom:10px;"><b style="font-size:0.82rem;color:#94a3b8;">BERT reads full bidirectional context and predicts:</b>
+<div class="tok-strip" style="margin-top:6px;">
+<span class="tok tok-cls">[CLS]</span><span class="tok tok-word">we</span><span class="tok tok-correct">are ✓</span><span class="tok tok-word">friends</span><span class="tok tok-sep">[SEP]</span>
+</div></div>
+<table class="dt"><thead><tr><th>Position</th><th>Token</th><th>BERT Output</th><th>Loss</th></tr></thead><tbody>
+<tr><td>pos=2</td><td class="cR">[MASK]</td><td><span class="cG">P("are")=94.2%</span></td><td class="cT">-log(0.942) = 0.060</td></tr>
+<tr><td style="color:#475569">pos=1</td><td style="color:#475569">"we"</td><td style="color:#475569">P("we")=99.1%</td><td style="color:#475569">Not predicted (unmask)</td></tr>
+<tr><td style="color:#475569">pos=3</td><td style="color:#475569">"friends"</td><td style="color:#475569">P("friends")=98.8%</td><td style="color:#475569">Not predicted (unmask)</td></tr>
+</tbody></table>
+<div style="margin-top:8px;font-size:0.82rem;color:#94a3b8;">BERT predicts "are" correctly because it reads "we __ friends" — both left AND right context at once!</div>`
+},
+{
+  title:"BERT Pre-training Task 2 — Next Sentence Prediction (NSP)",
+  formula:{h:"🔗 NSP: Given two sentences, predict if sentence B follows sentence A",
+  body:`50% of training pairs: sentence B actually follows sentence A → Label = <b>IsNext</b><br>
+50% of pairs: sentence B is a random sentence → Label = <b>NotNext</b><br><br>
+The <code>[CLS]</code> token's final embedding is used for this binary classification.<br>
+<code>Loss_NSP = CrossEntropy(Linear(h_[CLS]), label)</code><br><br>
+<b>Purpose:</b> Helps BERT understand inter-sentence relationships, useful for QA and NLI tasks.<br>
+<b>Note:</b> Later research showed NSP may not be critical — RoBERTa dropped it.`},
+  workspace:`<table class="dt"><thead><tr><th>Sentence A</th><th>Sentence B</th><th>Label</th><th>[CLS] Prediction</th></tr></thead><tbody>
+<tr class="hl"><td class="cB">"we are friends"</td><td class="cG">"hum dost hain"</td><td class="cG">IsNext ✓</td><td class="cT">IsNext (96.8%)</td></tr>
+<tr><td class="cB">"we are friends"</td><td class="cR">"the stock market crashed"</td><td class="cR">NotNext</td><td class="cT">NotNext (98.1%)</td></tr>
+<tr><td class="cB">"she loves coffee"</td><td class="cR">"quantum physics is complex"</td><td class="cR">NotNext</td><td class="cT">NotNext (95.4%)</td></tr>
+</tbody></table>
+<div style="margin-top:12px;background:#060f1e;border:1px solid #1e3a5f;border-radius:7px;padding:10px;font-size:0.82rem;">
+<b class="cA">Training objective:</b> <code>Total Loss = Loss_MLM + Loss_NSP</code><br>
+Both losses are backpropagated simultaneously through all 12 encoder layers.
+</div>`
+},
+{
+  title:"BERT Fine-tuning — One Model, Many Downstream Tasks",
+  formula:{h:"🎯 Fine-tuning: Add a small task-specific head on top of pre-trained BERT",
+  body:`BERT's pre-trained weights are loaded, then fine-tuned with a small additional layer for each task.<br>
+<b>Only a few thousand gradient steps</b> needed — much less than training from scratch!<br><br>
+The <code>[CLS]</code> token output is used for sentence-level tasks.<br>
+Individual <code>token[i]</code> outputs are used for token-level tasks (NER, QA).`},
+  workspace:`<table class="dt"><thead><tr><th>Task</th><th>Input Format</th><th>BERT Output Used</th><th>Head Added</th><th>BERT State-of-Art</th></tr></thead><tbody>
+<tr class="hl"><td class="cT">Sentiment Analysis</td><td>[CLS] sentence [SEP]</td><td>h_[CLS]</td><td>Linear → Softmax</td><td class="cG">GLUE: 80.5</td></tr>
+<tr><td class="cB">Named Entity Recognition</td><td>[CLS] tokens [SEP]</td><td>h_[token i] for each token</td><td>Linear per token</td><td class="cG">CoNLL-03: 92.8 F1</td></tr>
+<tr><td class="cA">Question Answering</td><td>[CLS] Q [SEP] Passage [SEP]</td><td>h_[token i] → start/end span</td><td>Start + End classifiers</td><td class="cG">SQuAD 2.0: 83.1</td></tr>
+<tr><td class="cP">Natural Language Inference</td><td>[CLS] premise [SEP] hypothesis [SEP]</td><td>h_[CLS]</td><td>3-class Linear</td><td class="cG">MNLI: 86.7%</td></tr>
+</tbody></table>
+<div style="margin-top:10px;background:rgba(13,148,136,0.1);border:1px solid #0d9488;border-radius:7px;padding:10px;font-size:0.83rem;">
+<b class="cT">🏆 BERT's impact:</b> Achieved state-of-the-art on 11 NLP benchmarks simultaneously at launch.<br>
+It showed that <b>pre-train then fine-tune</b> is a far more efficient paradigm than training task-specific models from scratch.
+</div>`
+},
+{
+  title:"Step 6 — How BERT Predicts [MASK] Without ANY Decoder",
+  formula:{h:"🎯 MLM Head = Encoder Output → Linear Layer → Softmax — No autoregression, NO decoder needed!",
+  body:`BERT doesn't need a decoder to predict masked words because it's NOT generating a sequence — it's solving a <b>classification problem at each masked position</b>.<br><br>
+<b>The MLM head is just 3 simple layers on TOP of the encoder:</b><br>
+1. <code>h_[MASK] ∈ ℝ⁷⁶⁸</code> — the encoder output vector at the [MASK] position<br>
+2. <code>Linear: h_[MASK] × W_vocab + b</code> → gives logit scores for all 30,522 vocab tokens<br>
+3. <code>Softmax → probability distribution over vocabulary</code><br><br>
+<b>All masked positions are predicted SIMULTANEOUSLY</b> in one forward pass — no loop, no autoregression!`},
+  workspace:`<div style="font-size:0.84rem;font-weight:700;color:#2dd4bf;margin-bottom:10px;">🏗️ BERT MLM Prediction Pipeline (Single Forward Pass)</div>
+<div style="background:#060f1e;border:1px solid #1e3a5f;border-radius:8px;padding:12px;margin-bottom:14px;font-size:0.83rem;line-height:1.8;">
+  <b style="color:#fbbf24;">INPUT:</b> <span style="font-family:monospace;color:#38bdf8;">[CLS]  "we"  [MASK]  "friends"  [SEP]</span><br>
+  <div style="margin:8px 0;border-top:1px solid #1e3a5f;padding-top:8px;">
+    <b style="color:#2dd4bf;">↓ 12 Bidirectional Encoder Blocks (768-dim, sees ALL tokens)</b>
+  </div>
+  <b style="color:#fbbf24;">ENCODER OUTPUT VECTORS:</b><br>
+  <span style="font-family:monospace;font-size:0.78rem;">
+  h<sub>[CLS]</sub>=[0.91, -0.22, 0.43, ...] ∈ ℝ⁷⁶⁸<br>
+  h<sub>we</sub> = [0.82, 0.55, 0.12, ...] ∈ ℝ⁷⁶⁸<br>
+  <span style="color:#f87171;font-weight:700;">h<sub>[MASK]</sub>= [0.34, 0.87, -0.21, ...] ∈ ℝ⁷⁶⁸  ← Only this is passed to MLM head!</span><br>
+  h<sub>friends</sub>=[1.86, -0.54, 1.08, ...] ∈ ℝ⁷⁶⁸<br>
+  </span>
+  <div style="margin:8px 0;border-top:1px solid #1e3a5f;padding-top:8px;">
+    <b style="color:#f472b6;">↓ MLM Head on h<sub>[MASK]</sub> only</b>
+  </div>
+  <b style="color:#fbbf24;">MLM HEAD MATH:</b><br>
+  <span style="font-family:monospace;font-size:0.79rem;">
+  Step 1: Linear = h<sub>[MASK]</sub> × W<sub>vocab</sub>  +  b<br>
+           shape:  (768)   ×  (768 × 30522)  +  (30522)<br>
+           result: logit_scores ∈ ℝ<sup>30522</sup>  (one score per vocab word)<br><br>
+  Step 2: probs = Softmax(logit_scores)<br>
+           → P("are") = 0.942, P("were") = 0.031, P("is") = 0.018, ...<br>
+  </span>
+</div>
+<table class="dt"><thead><tr><th>Vocab Token</th><th>Logit Score</th><th>After Softmax (P)</th><th>Loss</th></tr></thead><tbody>
+<tr class="hl"><td class="cG">"are" ← CORRECT</td><td>8.42</td><td class="cG">94.2%</td><td class="cT">-log(0.942) = 0.060 ✅</td></tr>
+<tr><td>"were"</td><td>4.81</td><td>3.1%</td><td style="color:#475569;">Not correct</td></tr>
+<tr><td>"is"</td><td>4.23</td><td>1.8%</td><td style="color:#475569;">Not correct</td></tr>
+<tr><td>"the" (27,000+ others)</td><td>&lt; 2.0</td><td>&lt; 1%</td><td style="color:#475569;">Not correct</td></tr>
+</tbody></table>
+<div style="margin-top:10px;background:rgba(13,148,136,0.1);border:1px solid #0d9488;border-radius:7px;padding:10px;font-size:0.84rem;">
+<b class="cT">Key contrast with GPT:</b><br>
+• BERT predicts ALL masked tokens simultaneously in ONE encoder forward pass (classification).<br>
+• GPT generates tokens ONE BY ONE in a loop (autoregressive generation).<br>
+• BERT's MLM head is lightweight: just one Linear layer of size 768×30,522 ≈ 23M parameters.
+</div>`
+},
+{
+  title:"Step 7 — BERT Fill-Mask at Inference: How it Works Without a Decoder",
+  formula:{h:"🔍 Inference: Input with [MASK] → Encoder → MLM Head → Top-K predicted words — all in ONE pass!",
+  body:`At inference, BERT's fill-mask task is straightforward:<br>
+1. <b>Tokenize</b> the input sentence with some [MASK] tokens inserted<br>
+2. <b>One encoder forward pass</b> (reads ALL tokens bidirectionally)<br>
+3. Extract <b>h_[MASK]</b> vector(s) from encoder output<br>
+4. Apply <b>MLM head</b>: Linear(h_[MASK]) → Softmax → Top-K words<br>
+5. Return top-K predicted replacements for [MASK]<br><br>
+<b>No loop. No decoding. No beam search.</b> Just one matrix multiply and a softmax!`},
+  workspace:`<div style="font-size:0.84rem;font-weight:700;color:#2dd4bf;margin-bottom:10px;">🖥️ BERT Fill-Mask Inference — Step by Step</div>
+<table class="dt" style="margin-bottom:14px;"><thead><tr><th>Stage</th><th>What Happens</th><th>Data</th></tr></thead><tbody>
+<tr class="hl"><td class="cT">① Tokenize</td><td>Convert text to token IDs, replace blank with [MASK] token (ID=103)</td><td class="cB">["[CLS]"=101, "we"=2057, "[MASK]"=103, "friends"=2814, "[SEP]"=102]</td></tr>
+<tr><td class="cB">② Embed</td><td>Token + Segment + Position embedding for each token</td><td class="cB">5 vectors ∈ ℝ⁷⁶⁸ (one per token)</td></tr>
+<tr><td class="cA">③ Encode</td><td>12 bidirectional encoder blocks process all 5 tokens simultaneously</td><td class="cA">5 output vectors ∈ ℝ⁷⁶⁸ (one per token, rich with bidirectional context)</td></tr>
+<tr><td class="cP">④ Extract [MASK] vector</td><td>Pick only h_[MASK] (position 2 in this example)</td><td class="cP">h_[MASK] = [0.34, 0.87, -0.21, ...] ∈ ℝ⁷⁶⁸</td></tr>
+<tr class="hl"><td class="cG">⑤ MLM Head</td><td>h_[MASK] × W_vocab → Softmax → Top-5 predictions</td><td class="cG">P("are")=94.2%, P("were")=3.1%, P("have")=1.4%, P("is")=0.8%, P("go")=0.5%</td></tr>
+</tbody></table>
+<div style="font-size:0.84rem;font-weight:700;color:#fff;margin-bottom:8px;">🆚 BERT Fill-Mask vs GPT Text Completion — Head-to-Head</div>
+<table class="dt"><thead><tr><th>Property</th><th class="cT">BERT Fill-Mask</th><th class="cRo" style="color:#fb7185;">GPT Completion</th></tr></thead><tbody>
+<tr><td>Input</td><td class="cT">"we [MASK] friends"</td><td style="color:#fb7185;">"we are"</td></tr>
+<tr><td>Direction</td><td class="cT">Bidirectional (sees "friends" right of [MASK])</td><td style="color:#fb7185;">Left→Right only (can't see "friends")</td></tr>
+<tr><td>Output type</td><td class="cT">Classification (pick best word for blank)</td><td style="color:#fb7185;">Generation (continue after "are")</td></tr>
+<tr><td>Number of passes</td><td class="cT">1 encoder pass (fast!)</td><td style="color:#fb7185;">N decoder passes (one per token generated)</td></tr>
+<tr><td>Decoder needed?</td><td class="cT">❌ NO decoder at all!</td><td style="color:#fb7185;">✅ Decoder is the only component</td></tr>
+<tr><td>Can generate new sentences?</td><td class="cT">❌ No — only fills blanks in existing sentence</td><td style="color:#fb7185;">✅ Yes — generates open-ended text</td></tr>
+<tr><td>Accuracy on fill-blank</td><td class="cT">✅ Higher (sees full context both ways)</td><td style="color:#fb7185;">Lower (only sees left side)</td></tr>
+</tbody></table>
+<div style="margin-top:10px;background:rgba(13,148,136,0.08);border:1px solid #0d9488;border-radius:7px;padding:10px;font-size:0.84rem;">
+<b class="cT">🔑 The fundamental reason BERT needs no decoder:</b><br>
+BERT is solving a <b>classification problem</b> at the masked positions — "which word fits best here?" — not a generation problem. Classification is a single softmax, not an autoregressive loop. The encoder's bidirectional context is what makes BERT's fill-mask so accurate.
+</div>`
+}
+];
+
+var cur=0, auto=null;
+function render(){
+  var s=STEPS[cur];
+  document.getElementById('panelTitle').innerHTML=s.title;
+  document.getElementById('formulaBox').innerHTML='<h4>'+s.formula.h+'</h4>'+s.formula.body;
+  document.getElementById('workspace').innerHTML=s.workspace;
+  document.getElementById('sinfo').innerHTML='Step '+(cur+1)+' of '+STEPS.length;
+  for(var i=0;i<8;i++){var c=document.getElementById('sc'+i);if(c)c.classList.toggle('active',i===cur);}
+}
+function nextStep(){cur=(cur<STEPS.length-1)?cur+1:0;render();}
+function goStep(s){cur=s;render();}
+function toggleAuto(){
+  if(auto){clearInterval(auto);auto=null;document.getElementById('autoBtn').innerHTML='▶ Auto Play';}
+  else{auto=setInterval(function(){if(cur>=STEPS.length-1){clearInterval(auto);auto=null;document.getElementById('autoBtn').innerHTML='▶ Auto Play';}else{cur++;render();}},2000);document.getElementById('autoBtn').innerHTML='⏸ Pause';}
+}
+function resetAll(){if(auto){clearInterval(auto);auto=null;}document.getElementById('autoBtn').innerHTML='▶ Auto Play';cur=0;render();}
+render();
+</script>
+</body>
+</html>

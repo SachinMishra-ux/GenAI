@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BERT vs GPT vs T5 — Complete Architecture Comparison</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#07101e;color:#f0f4ff;font-family:Arial,sans-serif;padding:20px;}
+h1{font-size:1.7rem;color:#fff;text-align:center;margin-bottom:4px;}
+.subtitle{text-align:center;color:#94a3b8;font-size:0.9rem;margin-bottom:20px;}
+/* NAV LINKS */
+.nav-links{display:flex;justify-content:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+.nav-btn{padding:8px 18px;border-radius:8px;font-size:0.84rem;font-weight:700;text-decoration:none;cursor:pointer;border:none;transition:transform 0.1s;}
+.nav-btn:active{transform:scale(0.97);}
+.nb-bert{background:rgba(13,148,136,0.2);border:2px solid #0d9488;color:#2dd4bf;}
+.nb-gpt{background:rgba(225,29,72,0.2);border:2px solid #e11d48;color:#fb7185;}
+.nb-t5{background:rgba(217,119,6,0.2);border:2px solid #d97706;color:#fbbf24;}
+.nb-bert:hover{background:rgba(13,148,136,0.4);}
+.nb-gpt:hover{background:rgba(225,29,72,0.4);}
+.nb-t5:hover{background:rgba(217,119,6,0.4);}
+/* TAB ROW */
+.tab-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.tab{flex:1;min-width:140px;background:#0f1e35;border:2px solid #1e3a5f;border-radius:9px;padding:10px 8px;text-align:center;cursor:pointer;font-size:0.82rem;font-weight:700;transition:all 0.2s;}
+.tab:hover{opacity:0.9;}
+.tab-bert{border-color:#0d9488;color:#2dd4bf;}
+.tab-bert.active{background:rgba(13,148,136,0.15);box-shadow:0 0 14px rgba(13,148,136,0.3);}
+.tab-gpt{border-color:#e11d48;color:#fb7185;}
+.tab-gpt.active{background:rgba(225,29,72,0.12);box-shadow:0 0 14px rgba(225,29,72,0.3);}
+.tab-t5{border-color:#d97706;color:#fbbf24;}
+.tab-t5.active{background:rgba(217,119,6,0.12);box-shadow:0 0 14px rgba(217,119,6,0.3);}
+.tab-cmp{border-color:#9333ea;color:#a78bfa;}
+.tab-cmp.active{background:rgba(147,51,234,0.12);box-shadow:0 0 14px rgba(147,51,234,0.3);}
+/* THREE-COLUMN ARCH CARDS */
+.arch-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;}
+@media(max-width:900px){.arch-grid{grid-template-columns:1fr;}}
+.arch-card{border-radius:12px;padding:16px;border:2px solid transparent;}
+.ac-bert{background:rgba(13,148,136,0.07);border-color:#0d9488;}
+.ac-gpt{background:rgba(225,29,72,0.07);border-color:#e11d48;}
+.ac-t5{background:rgba(217,119,6,0.07);border-color:#d97706;}
+.ac-header{font-size:1rem;font-weight:800;margin-bottom:4px;}
+.ah-bert{color:#2dd4bf;} .ah-gpt{color:#fb7185;} .ah-t5{color:#fbbf24;}
+.ac-sub{font-size:0.75rem;color:#94a3b8;margin-bottom:12px;}
+/* BLOCK DIAGRAMS */
+.block{border-radius:6px;padding:7px 10px;font-size:0.77rem;font-weight:700;border:1.5px solid transparent;text-align:center;margin-bottom:4px;}
+.b-token{background:rgba(251,191,36,0.1);border-color:#fbbf24;color:#fbbf24;}
+.b-embed{background:rgba(56,189,248,0.1);border-color:#38bdf8;color:#38bdf8;}
+.b-enc{background:rgba(13,148,136,0.1);border-color:#0d9488;color:#2dd4bf;}
+.b-gpt{background:rgba(225,29,72,0.1);border-color:#e11d48;color:#fb7185;}
+.b-dec{background:rgba(192,132,252,0.1);border-color:#c084fc;color:#c084fc;}
+.b-cross{background:rgba(74,222,128,0.1);border-color:#4ade80;color:#4ade80;}
+.b-cls{background:rgba(244,114,182,0.1);border-color:#f472b6;color:#f472b6;}
+.b-out{background:rgba(74,222,128,0.1);border-color:#4ade80;color:#4ade80;}
+.b-arr{text-align:center;color:#475569;font-size:0.85rem;margin:2px 0;}
+/* SECTION HEADER */
+.section-hdr{font-size:1.05rem;font-weight:800;color:#fff;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #1e3a5f;}
+/* COMPARISON TABLE */
+.cmp-table{width:100%;border-collapse:collapse;font-size:0.82rem;margin-bottom:20px;}
+.cmp-table th{padding:9px 10px;background:#060f1e;border-bottom:2px solid #1e3a5f;font-size:0.8rem;}
+.cmp-table th.th-bert{color:#2dd4bf;}
+.cmp-table th.th-gpt{color:#fb7185;}
+.cmp-table th.th-t5{color:#fbbf24;}
+.cmp-table th.th-prop{color:#94a3b8;text-align:left;}
+.cmp-table td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;vertical-align:top;}
+.cmp-table td.prop{text-align:left;color:#94a3b8;font-weight:700;font-size:0.8rem;}
+.cmp-table tr:hover{background:rgba(255,255,255,0.02);}
+.cell-bert{color:#2dd4bf;font-weight:700;}
+.cell-gpt{color:#fb7185;font-weight:700;}
+.cell-t5{color:#fbbf24;font-weight:700;}
+.tick{color:#4ade80;font-weight:700;font-size:1rem;}
+.cross{color:#f87171;font-weight:700;font-size:1rem;}
+/* USE-CASE GRID */
+.use-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;}
+@media(max-width:800px){.use-grid{grid-template-columns:1fr;}}
+.use-card{background:#0f1e35;border-radius:10px;padding:14px;border:1px solid #1e3a5f;}
+.uc-title{font-size:0.78rem;font-weight:800;text-transform:uppercase;margin-bottom:8px;}
+.uc-item{display:flex;align-items:flex-start;gap:6px;padding:4px 0;font-size:0.8rem;line-height:1.4;}
+.uc-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+/* TIMELINE */
+.timeline{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:20px;}
+.tl-row{display:grid;grid-template-columns:80px 1fr;gap:12px;align-items:start;}
+.tl-year{font-size:0.88rem;font-weight:800;color:#fff;text-align:right;padding-top:3px;}
+.tl-card{background:#0f1e35;border-radius:8px;padding:10px 14px;border-left:3px solid transparent;font-size:0.82rem;}
+.tl-bert-c{border-color:#0d9488;}
+.tl-gpt-c{border-color:#e11d48;}
+.tl-t5-c{border-color:#d97706;}
+.tl-flan-c{border-color:#9333ea;}
+.tl-gpt3-c{border-color:#f472b6;}
+.tl-name{font-weight:800;margin-bottom:3px;}
+.tl-detail{color:#94a3b8;line-height:1.5;}
+/* ATTENTION COMPARISON */
+.attn-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;}
+@media(max-width:800px){.attn-grid{grid-template-columns:1fr;}}
+.attn-card{background:#060f1e;border:1px solid #1e3a5f;border-radius:8px;padding:12px;}
+.attn-title{font-size:0.8rem;font-weight:800;margin-bottom:8px;}
+.hmini{display:inline-grid;gap:3px;}
+.hm{width:36px;height:36px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;}
+.hm-bl{background:rgba(248,113,113,0.15);color:#f87171;text-decoration:line-through;font-size:0.58rem;}
+.hm-lb{font-weight:800;color:#94a3b8;font-size:0.7rem;text-align:right;padding-right:4px;}
+.hm-hb{font-weight:800;color:#94a3b8;font-size:0.7rem;text-align:center;}
+/* main content area */
+.content-area{background:#0f1e35;border:1px solid #1e3a5f;border-radius:12px;padding:20px;}
+</style>
+</head>
+<body>
+<h1>⚔️ BERT vs GPT vs T5 — Architecture Comparison</h1>
+<div class="subtitle">Three fundamental approaches to Transformer-based language modeling</div>
+
+<!-- NAV LINKS -->
+<div class="nav-links">
+  <a class="nav-btn nb-bert" href="bert_visualizer.html">🤖 Open BERT Visualizer</a>
+  <a class="nav-btn nb-gpt" href="gpt_visualizer.html">🧬 Open GPT Visualizer</a>
+  <a class="nav-btn nb-t5" href="t5_visualizer.html">🧮 Open T5 Visualizer</a>
+</div>
+
+<!-- TAB ROW -->
+<div class="tab-row">
+  <div class="tab tab-bert active" id="tab0" onclick="showTab(0)">🤖 BERT Architecture</div>
+  <div class="tab tab-gpt" id="tab1" onclick="showTab(1)">🧬 GPT Architecture</div>
+  <div class="tab tab-t5" id="tab2" onclick="showTab(2)">🧮 T5 Architecture</div>
+  <div class="tab tab-cmp" id="tab3" onclick="showTab(3)">⚔️ Full Comparison</div>
+</div>
+
+<div class="content-area" id="contentArea">
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB CONTENT
+// ─────────────────────────────────────────────────────────────────────────────
+var TABS = [
+
+// ── BERT ──────────────────────────────────────────────────────────────────
+`<div class="section-hdr">🤖 BERT — Bidirectional Encoder Representations from Transformers</div>
+<div class="arch-grid" style="grid-template-columns:1fr 2fr;">
+  <div class="arch-card ac-bert">
+    <div class="ac-header ah-bert">BERT Block Diagram</div>
+    <div class="ac-sub">Google AI · 2018 · Devlin et al.</div>
+    <div class="block b-cls">Task Output (Classification / NER / QA)</div>
+    <div class="b-arr">⬆ [CLS] embedding → Classifier</div>
+    <div class="block b-enc">ENCODER BLOCK ×12 (Base) / ×24 (Large)<div style="font-size:0.65rem;color:#94a3b8;margin-top:2px;">Multi-Head Self-Attn (Bidirectional, No Mask)<br>+ FFNN + Add &amp; Norm</div></div>
+    <div class="b-arr">⬆ 30,522-token WordPiece vocabulary</div>
+    <div class="block b-embed">Token + Segment + Position Embeddings</div>
+    <div class="b-arr">⬆</div>
+    <div class="block b-token">[CLS] + WordPiece Tokens + [SEP]</div>
+    <div style="margin-top:10px;background:rgba(13,148,136,0.1);border:1px solid #0d9488;border-radius:6px;padding:8px;font-size:0.76rem;">
+      <b style="color:#2dd4bf;">NO Decoder!</b><br>
+      <b style="color:#2dd4bf;">NO Causal Mask!</b><br>
+      <span style="color:#94a3b8;">Reads the entire sentence bidirectionally</span>
+    </div>
+  </div>
+  <div>
+    <div style="background:#060f1e;border:1px solid #1e3a5f;border-radius:8px;padding:14px;margin-bottom:12px;font-size:0.84rem;line-height:1.7;border-left:4px solid #0d9488;">
+      <b style="color:#2dd4bf;font-size:0.9rem;">🔑 Core Idea: Bidirectional = See full context from both directions</b><br><br>
+      BERT's self-attention has <b>NO causal mask</b>. Every token can attend to every other token — left and right.<br><br>
+      This makes BERT excellent at <b>understanding language</b> — it reads like a human, considering the entire sentence at once.<br><br>
+      <b>Pre-training tasks:</b><br>
+      1. <b>MLM (Masked Language Model):</b> Mask 15% of tokens, predict them using bidirectional context<br>
+      2. <b>NSP (Next Sentence Prediction):</b> Predict whether sentence B follows sentence A<br><br>
+      <b>Fine-tuning:</b> Add a small head (1-2 linear layers) on top and fine-tune on task-specific labeled data.
+    </div>
+    <table class="cmp-table" style="margin-bottom:0;">
+      <thead><tr><th class="th-prop">Property</th><th class="th-bert">BERT Base</th><th class="th-bert">BERT Large</th></tr></thead>
+      <tbody>
+        <tr><td class="prop">Encoder Layers</td><td class="cell-bert">12</td><td class="cell-bert">24</td></tr>
+        <tr><td class="prop">Hidden Dimension</td><td class="cell-bert">768</td><td class="cell-bert">1024</td></tr>
+        <tr><td class="prop">Attention Heads</td><td class="cell-bert">12</td><td class="cell-bert">16</td></tr>
+        <tr><td class="prop">Parameters</td><td class="cell-bert">110M</td><td class="cell-bert">340M</td></tr>
+        <tr><td class="prop">Vocabulary</td><td class="cell-bert" colspan="2">30,522 (WordPiece)</td></tr>
+        <tr><td class="prop">Best Use Case</td><td class="cell-bert" colspan="2">Classification, NER, QA, NLI</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>`,
+
+// ── GPT ──────────────────────────────────────────────────────────────────
+`<div class="section-hdr">🧬 GPT — Generative Pre-trained Transformer</div>
+<div class="arch-grid" style="grid-template-columns:1fr 2fr;">
+  <div class="arch-card ac-gpt">
+    <div class="ac-header ah-gpt">GPT Block Diagram</div>
+    <div class="ac-sub">OpenAI · 2018 · Radford et al.</div>
+    <div class="block b-out">Linear + Softmax → Predicted Token</div>
+    <div class="b-arr">⬆</div>
+    <div class="block b-gpt">DECODER BLOCK ×12/48/96<div style="font-size:0.65rem;color:#94a3b8;margin-top:2px;">Causal Masked Self-Attention (Left→Right only)<br>+ FFNN + Add &amp; Norm</div></div>
+    <div class="b-arr">⬆</div>
+    <div class="block b-embed">BPE Token Embeddings + Positional Embeddings</div>
+    <div class="b-arr">⬆</div>
+    <div class="block b-token">BPE Tokenized Input (50,257 vocab)</div>
+    <div style="margin-top:10px;background:rgba(225,29,72,0.1);border:1px solid rgba(225,29,72,0.4);border-radius:6px;padding:8px;font-size:0.76rem;">
+      <b style="color:#fb7185;">NO Encoder!</b><br>
+      <b style="color:#fb7185;">NO Cross-Attention!</b><br>
+      <b style="color:#fb7185;">CAUSAL MASK (upper triangle = -∞)</b><br>
+      <span style="color:#94a3b8;">Reads left→right only, generates autoregressively</span>
+    </div>
+  </div>
+  <div>
+    <div style="background:#060f1e;border:1px solid #1e3a5f;border-radius:8px;padding:14px;margin-bottom:12px;font-size:0.84rem;line-height:1.7;border-left:4px solid #e11d48;">
+      <b style="color:#fb7185;font-size:0.9rem;">🔑 Core Idea: Causal = Only look LEFT, predict what comes NEXT</b><br><br>
+      GPT's self-attention applies a <b>causal mask</b> — the upper triangle of the attention matrix is set to -∞, so each token can only attend to itself and previous tokens.<br><br>
+      This makes GPT excellent at <b>generating text</b> — it predicts one word at a time like a human writing.<br><br>
+      <b>Pre-training task:</b> <b>Causal Language Modeling (CLM)</b> — predict the next token given all previous tokens. Self-supervised on massive text corpora.<br><br>
+      <b>Key innovation at scale (GPT-3):</b> In-context learning — just provide examples in the prompt, no weight updates needed.
+    </div>
+    <table class="cmp-table" style="margin-bottom:0;">
+      <thead><tr><th class="th-prop">Property</th><th class="th-gpt">GPT-1</th><th class="th-gpt">GPT-2 XL</th><th class="th-gpt">GPT-3</th></tr></thead>
+      <tbody>
+        <tr><td class="prop">Decoder Blocks</td><td class="cell-gpt">12</td><td class="cell-gpt">48</td><td class="cell-gpt">96</td></tr>
+        <tr><td class="prop">Hidden Dim</td><td class="cell-gpt">768</td><td class="cell-gpt">1600</td><td class="cell-gpt">12,288</td></tr>
+        <tr><td class="prop">Parameters</td><td class="cell-gpt">117M</td><td class="cell-gpt">1.5B</td><td class="cell-gpt">175B</td></tr>
+        <tr><td class="prop">Context Window</td><td class="cell-gpt">512</td><td class="cell-gpt">1024</td><td class="cell-gpt">2048</td></tr>
+        <tr><td class="prop">Best Use Case</td><td class="cell-gpt" colspan="3">Text Generation, Completion, Few-shot</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>`,
+
+// ── T5 ──────────────────────────────────────────────────────────────────
+`<div class="section-hdr">🧮 T5 / Flan-T5 — Text-to-Text Transfer Transformer</div>
+<div class="arch-grid" style="grid-template-columns:1fr 2fr;">
+  <div class="arch-card ac-t5">
+    <div class="ac-header ah-t5">T5 Block Diagram</div>
+    <div class="ac-sub">Google Research · 2020 · Raffel et al.</div>
+    <div class="block b-out">Linear + Softmax → Output Text Token</div>
+    <div class="b-arr">⬆</div>
+    <div class="block b-dec">DECODER BLOCK ×12/24<div style="font-size:0.65rem;color:#94a3b8;margin-top:2px;">Causal Self-Attn + Cross-Attention + FFNN</div></div>
+    <div class="b-arr">↑ Cross-Attention reads Z_enc ↑</div>
+    <div class="block b-cross">Encoder-Decoder Bridge (Z_enc)</div>
+    <div class="b-arr">⬆</div>
+    <div class="block b-enc">ENCODER BLOCK ×12/24<div style="font-size:0.65rem;color:#94a3b8;margin-top:2px;">Bidirectional Self-Attention (No Mask) + FFNN</div></div>
+    <div class="b-arr">⬆ SentencePiece (32K vocab)</div>
+    <div class="block b-token">[Task Prefix]: Input Text</div>
+    <div style="margin-top:10px;background:rgba(217,119,6,0.1);border:1px solid rgba(217,119,6,0.4);border-radius:6px;padding:8px;font-size:0.76rem;">
+      <b style="color:#fbbf24;">HAS Encoder (Bidirectional)!</b><br>
+      <b style="color:#fbbf24;">HAS Decoder (Causal + Cross-Attn)!</b><br>
+      <b style="color:#fbbf24;">Relative Position Bias (not absolute PE)</b><br>
+      <span style="color:#94a3b8;">Text-in, Text-out for ALL tasks</span>
+    </div>
+  </div>
+  <div>
+    <div style="background:#060f1e;border:1px solid #1e3a5f;border-radius:8px;padding:14px;margin-bottom:12px;font-size:0.84rem;line-height:1.7;border-left:4px solid #d97706;">
+      <b style="color:#fbbf24;font-size:0.9rem;">🔑 Core Idea: Unified Text-to-Text — EVERY task is (text input → text output)</b><br><br>
+      T5 keeps the <b>full encoder-decoder</b> architecture from the original Transformer paper.<br><br>
+      <b>Encoder:</b> Reads input text bidirectionally → creates rich context vectors Z_enc<br>
+      <b>Decoder:</b> Generates output text autoregressively, attending to Z_enc via Cross-Attention<br><br>
+      <b>Pre-training task:</b> <b>Span Corruption</b> — replace spans of tokens with sentinel tokens (&lt;extra_id_0&gt;), predict the originals<br><br>
+      <b>Flan-T5:</b> Fine-tuned T5 on 1,800+ instruction-formatted tasks → much better zero-shot generalization.
+    </div>
+    <table class="cmp-table" style="margin-bottom:0;">
+      <thead><tr><th class="th-prop">Property</th><th class="th-t5">T5-Base</th><th class="th-t5">T5-Large</th><th class="th-t5">T5-11B</th></tr></thead>
+      <tbody>
+        <tr><td class="prop">Enc/Dec Layers</td><td class="cell-t5">12/12</td><td class="cell-t5">24/24</td><td class="cell-t5">24/24</td></tr>
+        <tr><td class="prop">Hidden Dim</td><td class="cell-t5">768</td><td class="cell-t5">1024</td><td class="cell-t5">1024</td></tr>
+        <tr><td class="prop">Parameters</td><td class="cell-t5">220M</td><td class="cell-t5">770M</td><td class="cell-t5">11B</td></tr>
+        <tr><td class="prop">Position Enc</td><td class="cell-t5" colspan="3">Relative Bias (not absolute PE)</td></tr>
+        <tr><td class="prop">Best Use Case</td><td class="cell-t5" colspan="3">Translation, Summarization, Multi-task</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>`,
+
+// ── COMPARISON ──────────────────────────────────────────────────────────
+`<div class="section-hdr">⚔️ BERT vs GPT vs T5 — Side-by-Side Full Comparison</div>
+
+<!-- Attention Matrix Comparison -->
+<div style="font-size:0.88rem;font-weight:700;color:#fff;margin-bottom:10px;">🔍 Attention Pattern Comparison</div>
+<div class="attn-grid">
+  <div class="attn-card">
+    <div class="attn-title" style="color:#2dd4bf;">BERT — Full Bidirectional (No Mask)</div>
+    <div class="hmini" style="grid-template-columns:42px 38px 38px 38px;">
+      <div class="hm-hb"></div><div class="hm-hb">we</div><div class="hm-hb">are</div><div class="hm-hb">friends</div>
+      <div class="hm-lb">we</div><div class="hm" style="background:rgba(13,148,136,0.75);color:#000;">70%</div><div class="hm" style="background:rgba(13,148,136,0.25);color:#fff;">15%</div><div class="hm" style="background:rgba(13,148,136,0.25);color:#fff;">15%</div>
+      <div class="hm-lb">are</div><div class="hm" style="background:rgba(13,148,136,0.25);color:#fff;">20%</div><div class="hm" style="background:rgba(13,148,136,0.65);color:#000;">50%</div><div class="hm" style="background:rgba(13,148,136,0.25);color:#fff;">20%</div>
+      <div class="hm-lb">friends</div><div class="hm" style="background:rgba(13,148,136,0.35);color:#fff;">25%</div><div class="hm" style="background:rgba(13,148,136,0.20);color:#fff;">10%</div><div class="hm" style="background:rgba(13,148,136,0.65);color:#000;">65%</div>
+    </div>
+    <div style="font-size:0.73rem;color:#94a3b8;margin-top:6px;">✅ All cells filled — every token sees every other token.</div>
+  </div>
+  <div class="attn-card">
+    <div class="attn-title" style="color:#fb7185;">GPT — Causal Masked (Lower Triangle Only)</div>
+    <div class="hmini" style="grid-template-columns:42px 38px 38px 38px;">
+      <div class="hm-hb"></div><div class="hm-hb">we</div><div class="hm-hb">are</div><div class="hm-hb">friends</div>
+      <div class="hm-lb">we</div><div class="hm" style="background:rgba(225,29,72,0.8);color:#fff;">100%</div><div class="hm hm-bl">0%</div><div class="hm hm-bl">0%</div>
+      <div class="hm-lb">are</div><div class="hm" style="background:rgba(225,29,72,0.45);color:#fff;">42%</div><div class="hm" style="background:rgba(225,29,72,0.75);color:#fff;">58%</div><div class="hm hm-bl">0%</div>
+      <div class="hm-lb">friends</div><div class="hm" style="background:rgba(225,29,72,0.25);color:#fff;">20%</div><div class="hm" style="background:rgba(225,29,72,0.50);color:#fff;">40%</div><div class="hm" style="background:rgba(225,29,72,0.55);color:#fff;">40%</div>
+    </div>
+    <div style="font-size:0.73rem;color:#94a3b8;margin-top:6px;">🛡️ Upper triangle = -∞. Only sees past tokens.</div>
+  </div>
+  <div class="attn-card">
+    <div class="attn-title" style="color:#fbbf24;">T5 Encoder — Bidirectional (Same as BERT)</div>
+    <div class="hmini" style="grid-template-columns:42px 38px 38px 38px;">
+      <div class="hm-hb"></div><div class="hm-hb">we</div><div class="hm-hb">are</div><div class="hm-hb">friends</div>
+      <div class="hm-lb">we</div><div class="hm" style="background:rgba(217,119,6,0.8);color:#000;">65%</div><div class="hm" style="background:rgba(217,119,6,0.30);color:#fff;">20%</div><div class="hm" style="background:rgba(217,119,6,0.25);color:#fff;">15%</div>
+      <div class="hm-lb">are</div><div class="hm" style="background:rgba(217,119,6,0.20);color:#fff;">15%</div><div class="hm" style="background:rgba(217,119,6,0.70);color:#000;">55%</div><div class="hm" style="background:rgba(217,119,6,0.40);color:#fff;">30%</div>
+      <div class="hm-lb">friends</div><div class="hm" style="background:rgba(217,119,6,0.30);color:#fff;">25%</div><div class="hm" style="background:rgba(217,119,6,0.20);color:#fff;">15%</div><div class="hm" style="background:rgba(217,119,6,0.75);color:#000;">60%</div>
+    </div>
+    <div style="font-size:0.73rem;color:#94a3b8;margin-top:6px;">✅ T5 Encoder: full bidirectional. T5 Decoder: causal masked (like GPT).</div>
+  </div>
+</div>
+
+<!-- Main comparison table -->
+<table class="cmp-table">
+<thead><tr>
+  <th class="th-prop">Property</th>
+  <th class="th-bert">🤖 BERT</th>
+  <th class="th-gpt">🧬 GPT-3</th>
+  <th class="th-t5">🧮 T5 / Flan-T5</th>
+</tr></thead>
+<tbody>
+<tr><td class="prop">Architecture</td><td class="cell-bert">Encoder-Only</td><td class="cell-gpt">Decoder-Only</td><td class="cell-t5">Encoder-Decoder</td></tr>
+<tr><td class="prop">Has Encoder?</td><td><span class="tick">✅ Yes (12-24)</span></td><td><span class="cross">❌ No</span></td><td><span class="tick">✅ Yes (12-24)</span></td></tr>
+<tr><td class="prop">Has Decoder?</td><td><span class="cross">❌ No</span></td><td><span class="tick">✅ Yes (12-96)</span></td><td><span class="tick">✅ Yes (12-24)</span></td></tr>
+<tr><td class="prop">Cross-Attention?</td><td><span class="cross">❌ None</span></td><td><span class="cross">❌ None</span></td><td><span class="tick">✅ Yes (Dec→Enc)</span></td></tr>
+<tr><td class="prop">Attention Direction</td><td class="cell-bert">Bidirectional (full)</td><td class="cell-gpt">Causal (left→right)</td><td class="cell-t5">Enc: Bi | Dec: Causal</td></tr>
+<tr><td class="prop">Attention Mask</td><td class="cell-bert">None (no mask)</td><td class="cell-gpt">Causal (upper -∞)</td><td class="cell-t5">Enc: none | Dec: causal</td></tr>
+<tr><td class="prop">Position Encoding</td><td class="cell-bert">Learned Absolute</td><td class="cell-gpt">Learned Absolute</td><td class="cell-t5">Relative Bias (learned)</td></tr>
+<tr><td class="prop">Tokenizer</td><td class="cell-bert">WordPiece (30K)</td><td class="cell-gpt">BPE (50K)</td><td class="cell-t5">SentencePiece (32K)</td></tr>
+<tr><td class="prop">Pre-training Task</td><td class="cell-bert">MLM + NSP</td><td class="cell-gpt">Causal LM (next token)</td><td class="cell-t5">Span Corruption</td></tr>
+<tr><td class="prop">Training Objective</td><td class="cell-bert">Bi-directional context prediction</td><td class="cell-gpt">Autoregressive next-token</td><td class="cell-t5">Seq2Seq span reconstruction</td></tr>
+<tr><td class="prop">Can Generate Text?</td><td><span class="cross">❌ No — embeddings only</span></td><td><span class="tick">✅ Yes — token by token</span></td><td><span class="tick">✅ Yes — via decoder</span></td></tr>
+<tr><td class="prop">Task Format</td><td class="cell-bert">Add task-specific head</td><td class="cell-gpt">Prompt-based (no fine-tune)</td><td class="cell-t5">Text prefix (text-to-text)</td></tr>
+<tr><td class="prop">Zero-Shot ability</td><td><span class="cross">❌ Weak</span></td><td class="cell-gpt">Strong (GPT-3)</td><td class="cell-t5">Strong (Flan-T5)</td></tr>
+<tr><td class="prop">Instruction Following</td><td><span class="cross">❌ No</span></td><td class="cell-gpt">Good (GPT-3)</td><td class="cell-t5">Excellent (Flan-T5)</td></tr>
+<tr><td class="prop">Best For</td><td class="cell-bert">Understanding / Classification</td><td class="cell-gpt">Open-ended Generation</td><td class="cell-t5">Seq2Seq / All Tasks</td></tr>
+<tr><td class="prop">Max Parameters</td><td class="cell-bert">340M (Large)</td><td class="cell-gpt">175B (GPT-3)</td><td class="cell-t5">11B (T5-11B)</td></tr>
+<tr><td class="prop">Organization</td><td class="cell-bert">Google AI</td><td class="cell-gpt">OpenAI</td><td class="cell-t5">Google Research</td></tr>
+<tr><td class="prop">Year Released</td><td class="cell-bert">2018</td><td class="cell-gpt">2018–2020</td><td class="cell-t5">2020 / Flan: 2022</td></tr>
+</tbody>
+</table>
+
+<!-- Use Cases -->
+<div style="font-size:0.88rem;font-weight:700;color:#fff;margin-bottom:10px;">🎯 When to use each model?</div>
+<div class="use-grid">
+  <div class="use-card">
+    <div class="uc-title" style="color:#2dd4bf;">🤖 Use BERT when...</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#2dd4bf;"></div>Classifying text (sentiment, spam, intent)</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#2dd4bf;"></div>Named entity recognition (NER)</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#2dd4bf;"></div>Extractive question answering</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#2dd4bf;"></div>Sentence similarity / semantic search</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#2dd4bf;"></div>Natural language inference</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#f87171;"></div>❌ NOT for generating/completing text</div>
+  </div>
+  <div class="use-card">
+    <div class="uc-title" style="color:#fb7185;">🧬 Use GPT when...</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#fb7185;"></div>Open-ended text generation</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#fb7185;"></div>Story writing, code completion</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#fb7185;"></div>Chatbots and dialogue systems</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#fb7185;"></div>Few-shot / in-context learning</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#fb7185;"></div>Zero-shot multi-task (GPT-3/4)</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#f87171;"></div>❌ NOT great at understanding context from both directions</div>
+  </div>
+  <div class="use-card">
+    <div class="uc-title" style="color:#fbbf24;">🧮 Use T5/Flan-T5 when...</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#fbbf24;"></div>Translation (seq-to-seq)</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#fbbf24;"></div>Summarization</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#fbbf24;"></div>Instruction following tasks (Flan)</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#fbbf24;"></div>Multi-task learning (all tasks at once)</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#fbbf24;"></div>Research / ablation studies</div>
+    <div class="uc-item"><div class="uc-dot" style="background:#f87171;"></div>❌ Heavier than BERT for simple classification</div>
+  </div>
+</div>
+
+<!-- Timeline -->
+<div style="font-size:0.88rem;font-weight:700;color:#fff;margin-bottom:10px;">📅 Evolution Timeline</div>
+<div class="timeline">
+  <div class="tl-row"><div class="tl-year">2017</div><div class="tl-card" style="border-color:#475569;"><div class="tl-name" style="color:#94a3b8;">Original Transformer</div><div class="tl-detail">Vaswani et al. "Attention is All You Need" — Encoder-Decoder for machine translation</div></div></div>
+  <div class="tl-row"><div class="tl-year">2018</div><div class="tl-card tl-gpt-c"><div class="tl-name" style="color:#fb7185;">GPT-1 (OpenAI)</div><div class="tl-detail">First decoder-only causal LM. Pre-train on text → fine-tune on tasks. 117M params.</div></div></div>
+  <div class="tl-row"><div class="tl-year">2018</div><div class="tl-card tl-bert-c"><div class="tl-name" style="color:#2dd4bf;">BERT (Google)</div><div class="tl-detail">Bidirectional encoder. MLM + NSP pre-training. State-of-the-art on 11 benchmarks. 110M–340M params.</div></div></div>
+  <div class="tl-row"><div class="tl-year">2019</div><div class="tl-card tl-gpt-c"><div class="tl-name" style="color:#fb7185;">GPT-2 (OpenAI)</div><div class="tl-detail">Scaling works! 1.5B params. Zero-shot task transfer. "Too dangerous to release" initially.</div></div></div>
+  <div class="tl-row"><div class="tl-year">2020</div><div class="tl-card tl-t5-c"><div class="tl-name" style="color:#fbbf24;">T5 (Google)</div><div class="tl-detail">Text-to-text unification. Span corruption. Multi-task. C4 dataset. 60M–11B params.</div></div></div>
+  <div class="tl-row"><div class="tl-year">2020</div><div class="tl-card tl-gpt3-c"><div class="tl-name" style="color:#f472b6;">GPT-3 (OpenAI)</div><div class="tl-detail">175B params. In-context learning. Few-shot without fine-tuning. Changed the field.</div></div></div>
+  <div class="tl-row"><div class="tl-year">2022</div><div class="tl-card tl-flan-c"><div class="tl-name" style="color:#a78bfa;">Flan-T5 (Google)</div><div class="tl-detail">T5 + instruction tuning on 1,800+ tasks. Near GPT-3 performance at 1/16th the size.</div></div></div>
+</div>`
+];
+
+var curTab = 0;
+var TAB_IDS = ['tab0','tab1','tab2','tab3'];
+var TAB_ACTIVE_CLASSES = ['tab-bert','tab-gpt','tab-t5','tab-cmp'];
+
+function showTab(t) {
+  curTab = t;
+  TAB_IDS.forEach(function(id, i) {
+    var el = document.getElementById(id);
+    if (el) el.classList.toggle('active', i === t);
+  });
+  document.getElementById('contentArea').innerHTML = TABS[t];
+}
+
+showTab(0);
+</script>
+</body>
+</html>

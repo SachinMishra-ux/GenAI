@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transformer FFNN Visualizer — Feed-Forward Neural Network</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#07101e;color:#f0f4ff;font-family:Arial,sans-serif;padding:18px;}
+h1{font-size:1.7rem;color:#fff;text-align:center;margin-bottom:5px;}
+.subtitle{text-align:center;color:#94a3b8;font-size:0.9rem;margin-bottom:18px;}
+
+/* CONTROLS */
+.controls{background:#0f1e35;border:1px solid #1e3a5f;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+button{cursor:pointer;border:none;border-radius:7px;font-size:0.86rem;font-weight:700;padding:9px 15px;transition:transform 0.1s;}
+button:active{transform:scale(0.97);}
+.btn-purple{background:linear-gradient(135deg,#9333ea,#6d28d9);color:#fff;box-shadow:0 4px 12px rgba(147,51,234,0.35);}
+.btn-blue{background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;box-shadow:0 4px 12px rgba(14,165,233,0.3);}
+.btn-gray{background:#1e293b;color:#cbd5e1;border:1px solid #334155;}
+#sinfo{color:#94a3b8;font-size:0.83rem;}
+
+/* TOKEN SELECTOR */
+.tok-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.tok-label{font-size:0.82rem;color:#94a3b8;font-weight:700;}
+.tok-btn{cursor:pointer;border-radius:20px;padding:7px 16px;font-size:0.84rem;font-weight:700;border:2px solid transparent;transition:all 0.2s;}
+.tok-btn:hover{opacity:0.9;}
+.tb-we{background:rgba(56,189,248,0.15);border-color:#38bdf8;color:#38bdf8;}
+.tb-are{background:rgba(74,222,128,0.15);border-color:#4ade80;color:#4ade80;}
+.tb-friends{background:rgba(251,191,36,0.15);border-color:#fbbf24;color:#fbbf24;}
+.tb-we.sel,.tb-are.sel,.tb-friends.sel{color:#fff;}
+.tb-we.sel{background:#0ea5e9;}
+.tb-are.sel{background:#22c55e;}
+.tb-friends.sel{background:#f59e0b;}
+
+/* STEP CHIPS */
+.step-chips{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.sc{min-width:115px;flex:1;background:#0f1e35;border:1px solid #1e3a5f;border-radius:7px;padding:8px 7px;text-align:center;font-size:0.76rem;cursor:pointer;transition:all 0.2s;}
+.sc:hover{border-color:#9333ea;}
+.sc.active{border-color:#9333ea;background:rgba(147,51,234,0.12);box-shadow:0 0 10px rgba(147,51,234,0.2);}
+.sc .snum{display:block;font-size:0.62rem;color:#a78bfa;font-weight:800;margin-bottom:2px;}
+.sc .sname{font-weight:700;color:#fff;font-size:0.79rem;}
+
+/* 2-col layout */
+.layout{display:grid;grid-template-columns:1fr 290px;gap:16px;}
+@media(max-width:920px){.layout{grid-template-columns:1fr;}}
+
+/* NN CANVAS PANEL */
+.nn-panel{background:#0f1e35;border:1px solid #1e3a5f;border-radius:12px;padding:16px;}
+.nn-title{font-size:0.9rem;font-weight:700;color:#a78bfa;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+.dim-badge{background:#1e1040;border:1px solid #6d28d9;color:#a78bfa;font-size:0.72rem;padding:3px 9px;border-radius:10px;}
+
+canvas#nnCanvas{display:block;width:100%;border-radius:8px;background:#060f1e;cursor:default;}
+
+/* FORMULA PANEL */
+.formula-panel{background:#060f1e;border:1px solid #1e3a5f;border-left:4px solid #9333ea;border-radius:8px;padding:13px;margin-top:12px;font-size:0.84rem;line-height:1.7;}
+.formula-panel h4{color:#a78bfa;margin-bottom:6px;font-size:0.88rem;}
+code{background:#1e293b;padding:2px 6px;border-radius:4px;font-family:'Courier New',monospace;font-size:0.8rem;color:#a5f3fc;}
+
+/* SIDEBAR */
+.sidebar{display:flex;flex-direction:column;gap:12px;}
+.sb{background:#0f1e35;border:1px solid #1e3a5f;border-radius:10px;padding:14px;}
+.sb-t{font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8;margin-bottom:9px;}
+
+/* VECTOR DISPLAY */
+.vec-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px;}
+.vc{width:28px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700;}
+
+/* MATRIX MATH */
+.mmath{font-family:'Courier New',monospace;font-size:0.8rem;background:#0a1628;border-radius:6px;padding:10px;line-height:1.7;}
+.mmath .val{color:#a5f3fc;}
+.mmath .op{color:#fbbf24;}
+.mmath .res{color:#4ade80;font-weight:700;}
+
+/* DATA TABLE */
+.dt{width:100%;border-collapse:collapse;font-size:0.8rem;}
+.dt th{text-align:left;padding:6px 8px;background:#060f1e;color:#94a3b8;border-bottom:1px solid #1e3a5f;}
+.dt td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,0.04);}
+
+/* COLOR SHORTCUTS */
+.cB{color:#38bdf8;font-weight:700;}
+.cG{color:#4ade80;font-weight:700;}
+.cA{color:#fbbf24;font-weight:700;}
+.cP{color:#c084fc;font-weight:700;}
+.cR{color:#f87171;font-weight:700;}
+
+/* ACTIVATION BARS */
+.act-bar-bg{height:10px;background:#1e293b;border-radius:3px;overflow:hidden;margin-top:3px;}
+.act-bar{height:100%;border-radius:3px;}
+
+/* ARCH SUMMARY */
+.arch-layer{border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:0.8rem;font-weight:700;border:1.5px solid transparent;}
+.al-in{background:rgba(56,189,248,0.1);border-color:#38bdf8;color:#38bdf8;}
+.al-h{background:rgba(147,51,234,0.1);border-color:#9333ea;color:#a78bfa;}
+.al-out{background:rgba(74,222,128,0.1);border-color:#4ade80;color:#4ade80;}
+.al-lin{background:rgba(251,191,36,0.1);border-color:#fbbf24;color:#fbbf24;}
+.al-sub{font-size:0.7rem;color:#94a3b8;font-weight:400;margin-top:2px;}
+.al-arrow{text-align:center;color:#475569;font-size:1rem;margin:2px 0;}
+</style>
+</head>
+<body>
+
+<h1>🧠 Transformer Feed-Forward Network (FFNN) Visualizer</h1>
+<div class="subtitle">FFN(x) = max(0, xW₁ + b₁) W₂ + b₂ &nbsp;|&nbsp; Dimensions: 512 → 2048 → 512 &nbsp;|&nbsp; "we are friends"</div>
+
+<div class="controls">
+  <button class="btn-purple" onclick="nextStep()">⏩ Next Step</button>
+  <button class="btn-blue" id="autoBtn" onclick="toggleAuto()">▶ Auto Play</button>
+  <button class="btn-gray" onclick="resetAll()">🔄 Reset</button>
+  <span id="sinfo"></span>
+</div>
+
+<!-- TOKEN SELECT -->
+<div class="tok-row">
+  <span class="tok-label">Active Token:</span>
+  <button class="tok-btn tb-we sel" id="tok-we" onclick="setToken(0)">📘 "we"</button>
+  <button class="tok-btn tb-are" id="tok-are" onclick="setToken(1)">📗 "are"</button>
+  <button class="tok-btn tb-friends" id="tok-friends" onclick="setToken(2)">📙 "friends"</button>
+</div>
+
+<!-- STEP CHIPS -->
+<div class="step-chips">
+  <div class="sc active" id="sc0" onclick="goStep(0)">
+    <span class="snum">STEP 0</span><div class="sname">Input Vectors</div>
+  </div>
+  <div class="sc" id="sc1" onclick="goStep(1)">
+    <span class="snum">STEP 1</span><div class="sname">W₁ Projection</div>
+  </div>
+  <div class="sc" id="sc2" onclick="goStep(2)">
+    <span class="snum">STEP 2</span><div class="sname">ReLU Activation</div>
+  </div>
+  <div class="sc" id="sc3" onclick="goStep(3)">
+    <span class="snum">STEP 3</span><div class="sname">W₂ Projection</div>
+  </div>
+  <div class="sc" id="sc4" onclick="goStep(4)">
+    <span class="snum">STEP 4</span><div class="sname">Add &amp; Norm</div>
+  </div>
+  <div class="sc" id="sc5" onclick="goStep(5)">
+    <span class="snum">STEP 5</span><div class="sname">→ Linear Layer</div>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="layout">
+  <!-- NN CANVAS -->
+  <div>
+    <div class="nn-panel">
+      <div class="nn-title">
+        <span id="nnTitle">Neural Network Architecture</span>
+        <span class="dim-badge" id="dimBadge">512 → 2048 → 512</span>
+      </div>
+      <canvas id="nnCanvas" width="800" height="440"></canvas>
+      <div class="formula-panel" id="formulaPanel">
+        <h4>Loading...</h4>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <!-- Architecture -->
+    <div class="sb">
+      <div class="sb-t">FFNN Architecture</div>
+      <div class="arch-layer al-in" id="al0">
+        Input: Z_attn ∈ ℝ<sup>512</sup>
+        <div class="al-sub">From Multi-Head Attention output</div>
+      </div>
+      <div class="al-arrow">⬇</div>
+      <div class="arch-layer al-h" id="al1">
+        Linear W₁ + b₁ → ℝ<sup>2048</sup>
+        <div class="al-sub">W₁ ∈ ℝ<sup>512×2048</sup></div>
+      </div>
+      <div class="al-arrow">⬇</div>
+      <div class="arch-layer al-h" id="al2">
+        ReLU Activation
+        <div class="al-sub">max(0, z) — zeros out negatives</div>
+      </div>
+      <div class="al-arrow">⬇</div>
+      <div class="arch-layer al-out" id="al3">
+        Linear W₂ + b₂ → ℝ<sup>512</sup>
+        <div class="al-sub">W₂ ∈ ℝ<sup>2048×512</sup></div>
+      </div>
+      <div class="al-arrow">⬇</div>
+      <div class="arch-layer al-h" id="al4">
+        Add &amp; Norm
+        <div class="al-sub">LayerNorm(x + FFN(x))</div>
+      </div>
+      <div class="al-arrow">⬇</div>
+      <div class="arch-layer al-lin" id="al5">
+        → Linear Output Layer
+        <div class="al-sub">Used for final token prediction</div>
+      </div>
+    </div>
+
+    <!-- Live Values -->
+    <div class="sb" id="liveValues">
+      <div class="sb-t">Live Vector Values</div>
+      <div id="liveContent" style="font-size:0.8rem;color:#94a3b8;">Select a step to see live values.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// TOKEN DATA
+// ─────────────────────────────────────────────────────────────────────────────
+var TOKENS = [
+  { name:'"we"',    color:'#38bdf8', colorBg:'rgba(56,189,248,0.2)',  colorDim:'rgba(56,189,248,0.5)',
+    z_attn:   [0.82, 1.55, 0.12, 1.91, -0.44, 0.73, 1.28, -0.11],
+    h1_raw:   [1.42, -0.38, 2.11, 0.65, -0.92, 1.78, 0.33, -1.12, 2.04, 0.88],
+    h1_relu:  [1.42,  0.00, 2.11, 0.65,  0.00, 1.78, 0.33,  0.00, 2.04, 0.88],
+    h2_out:   [0.91, 1.62, -0.28, 0.73, 1.14, -0.55, 0.82, 1.40],
+    after_norm:[0.95, 1.38, -0.12, 0.87, 1.22, -0.31, 0.90, 1.33]
+  },
+  { name:'"are"',   color:'#4ade80', colorBg:'rgba(74,222,128,0.2)', colorDim:'rgba(74,222,128,0.5)',
+    z_attn:   [0.15, 0.78, -0.62, 0.34, 1.21, -0.44, 0.68, 0.92],
+    h1_raw:   [-0.55, 1.88, 0.44, -1.22, 1.65, 0.22, -0.78, 1.44, 0.98, -0.34],
+    h1_relu:  [ 0.00, 1.88, 0.44,  0.00, 1.65, 0.22,  0.00, 1.44, 0.98,  0.00],
+    h2_out:   [0.55, -0.18, 1.34, 0.62, -0.44, 1.82, 0.20, 0.78],
+    after_norm:[0.62, -0.05, 1.25, 0.70, -0.28, 1.71, 0.34, 0.85]
+  },
+  { name:'"friends"',color:'#fbbf24',colorBg:'rgba(251,191,36,0.2)', colorDim:'rgba(251,191,36,0.5)',
+    z_attn:   [1.86, -0.54, 1.08, 1.54, 0.38, -0.82, 1.42, 0.65],
+    h1_raw:   [2.22, 0.55, -0.88, 1.44, 0.72, -0.33, 1.98, 0.44, -0.65, 1.82],
+    h1_relu:  [2.22, 0.55,  0.00, 1.44, 0.72,  0.00, 1.98, 0.44,  0.00, 1.82],
+    h2_out:   [1.42, 0.88, 0.54, 1.72, -0.22, 0.96, 1.15, 0.38],
+    after_norm:[1.35, 0.95, 0.61, 1.65, -0.08, 1.05, 1.22, 0.46]
+  }
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEPS CONFIG
+// ─────────────────────────────────────────────────────────────────────────────
+var STEP_CONFIG = [
+  { id:0, label:"Input Vector Z_attn from Attention", phase:'input',   alActive:[0] },
+  { id:1, label:"Linear Layer 1: z·W₁ + b₁ = h (hidden)", phase:'w1', alActive:[1] },
+  { id:2, label:"ReLU Activation: max(0, h) — Kill Negatives", phase:'relu', alActive:[2] },
+  { id:3, label:"Linear Layer 2: h_relu·W₂ + b₂ = output", phase:'w2', alActive:[3] },
+  { id:4, label:"Add & Norm: LayerNorm(x + FFN(x))", phase:'addnorm', alActive:[4] },
+  { id:5, label:"Final Output → Linear Layer for Prediction", phase:'linear', alActive:[5] }
+];
+
+var FORMULAS = [
+  {
+    h:"📥 Step 0: Input Vector from Multi-Head Attention Output",
+    body:`The FFNN receives the output of the Multi-Head Attention sub-layer (after Add & Norm).<br>
+<b>Shape:</b> Z_attn ∈ ℝ<sup>512</sup> — one vector per token, processed independently.<br>
+<b>Key fact:</b> Unlike Self-Attention, the FFNN processes each token <i>independently</i> — no interaction between positions!<br>
+This is why it's called "position-wise feed-forward" in the paper.<br>
+<code>FFN applied at each position separately: z_"we", z_"are", z_"friends"</code>`
+  },
+  {
+    h:"⚡ Step 1: Linear Projection W₁ — h = Z · W₁ + b₁",
+    body:`<b>W₁ ∈ ℝ<sup>512 × 2048</sup></b> — expands from 512 to 2048 dimensions (4× expansion).<br>
+<code>h = Z_attn · W₁ + b₁</code><br>
+This is a matrix multiplication: each of the 512 input values is multiplied by its column in W₁.<br>
+<b>Result: h ∈ ℝ<sup>2048</sup></b> — a 4× larger vector with raw (possibly negative) activation values.<br>
+<b>Why expand?</b> More hidden units = more capacity to learn complex mappings!`
+  },
+  {
+    h:"🔴 Step 2: ReLU Activation — h_relu = max(0, h)",
+    body:`ReLU (Rectified Linear Unit) is applied element-wise to each of the 2048 values:<br>
+<code>h_relu[i] = max(0, h[i])</code><br>
+<b>Effect:</b> Any negative value becomes 0. Positive values pass through unchanged.<br>
+<b>Why?</b> Non-linearity is essential — without it, stacking linear layers adds no power!<br>
+After ReLU: some neurons are "dead" (=0), others are "active" (pass signal forward).`
+  },
+  {
+    h:"📤 Step 3: Linear Projection W₂ — output = h_relu · W₂ + b₂",
+    body:`<b>W₂ ∈ ℝ<sup>2048 × 512</sup></b> — compresses back from 2048 to 512 dimensions.<br>
+<code>FFN_output = h_relu · W₂ + b₂</code><br>
+<b>Result: FFN_output ∈ ℝ<sup>512</sup></b> — same shape as input, but with richer representation.<br>
+<b>The expand-then-compress pattern</b> (512→2048→512) allows the network to learn complex non-linear functions that simple 512→512 cannot!`
+  },
+  {
+    h:"➕ Step 4: Add & Norm — LayerNorm(Z_attn + FFN_output)",
+    body:`<b>Residual Connection:</b> Adds the original input Z_attn to the FFNN output:<br>
+<code>residual = Z_attn + FFN_output</code><br>
+<b>Layer Normalization:</b> Normalizes the result so mean=0 and variance=1:<br>
+<code>output = LayerNorm(residual)</code> where <code>LayerNorm(x) = γ × (x−μ)/σ + β</code><br>
+<b>Why residual?</b> Prevents vanishing gradients — the model can "skip" this layer if FFNN output is harmful!`
+  },
+  {
+    h:"🎯 Step 5: Final Output → Feeds into Next Encoder Block or Linear Layer",
+    body:`The FFNN output ∈ ℝ<sup>512</sup> is passed either:<br>
+• To the <b>next encoder block</b> (if not the last of 6 blocks)<br>
+• To the <b>Linear + Softmax layer</b> (if it's the final encoder block and we need Z_enc)<br><br>
+<b>In the decoder:</b> After the final (6th) decoder block, this 512-dim output is projected by<br>
+<code>Linear Layer: W_vocab ∈ ℝ<sup>512 × |V|</sup></code><br>
+<code>Softmax → P(next token) over entire vocabulary (50,000 words)</code>`
+  }
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+var curStep = 0;
+var curTok  = 0;
+var autoInterval = null;
+var animFrame = null;
+var animProgress = 0; // 0..1
+var animRunning = false;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CANVAS DRAWING
+// ─────────────────────────────────────────────────────────────────────────────
+var canvas = document.getElementById('nnCanvas');
+var ctx = canvas.getContext('2d');
+
+// Node layout (representative — we show ~5 nodes per layer with labels for actual dims)
+var LAYER_X = [60, 210, 380, 560, 720]; // 5 columns: input, h_raw, h_relu, output, residual
+var LAYER_LABELS = ['Input\n512-dim', 'Hidden h\n2048-dim', 'After ReLU\n2048-dim', 'FFN Output\n512-dim', 'After AddNorm\n512-dim'];
+var NODES_PER_LAYER = [6, 9, 9, 6, 6]; // visual representative nodes
+
+// Colors per step phase
+var PHASE_COLORS = {
+  input:   '#38bdf8',
+  w1:      '#9333ea',
+  relu:    '#f87171',
+  w2:      '#4ade80',
+  addnorm: '#fbbf24',
+  linear:  '#f472b6'
+};
+
+function getNodeY(layerIdx, nodeIdx) {
+  var n = NODES_PER_LAYER[layerIdx];
+  var totalH = 340;
+  var startY = 50;
+  var gap = totalH / (n + 1);
+  return startY + gap * (nodeIdx + 1);
+}
+
+function drawNetwork() {
+  var W = canvas.width;
+  var H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  var tok = TOKENS[curTok];
+  var phase = STEP_CONFIG[curStep].phase;
+  var activeColor = PHASE_COLORS[phase] || '#9333ea';
+  var tokenColor  = tok.color;
+
+  // Determine which layers are "lit" based on step
+  var litLayers = [];
+  if (curStep === 0) litLayers = [0];
+  if (curStep === 1) litLayers = [0,1];
+  if (curStep === 2) litLayers = [1,2];
+  if (curStep === 3) litLayers = [2,3];
+  if (curStep === 4) litLayers = [3,4];
+  if (curStep === 5) litLayers = [4];
+
+  // Draw edges between adjacent layers
+  for (var li = 0; li < LAYER_X.length - 1; li++) {
+    var isEdgeLit = litLayers.indexOf(li) >= 0 && litLayers.indexOf(li+1) >= 0;
+    var nSrc = NODES_PER_LAYER[li];
+    var nDst = NODES_PER_LAYER[li+1];
+    // draw subset of edges (all→all is too dense, show sampled)
+    for (var si = 0; si < nSrc; si++) {
+      for (var di = 0; di < nDst; di++) {
+        // Only draw if both source and dest are in visible range
+        if ((si % 2 === 0 || si === nSrc-1) && (di % 2 === 0 || di === nDst-1)) {
+          var x1 = LAYER_X[li] + 18;
+          var y1 = getNodeY(li, si);
+          var x2 = LAYER_X[li+1] - 18;
+          var y2 = getNodeY(li+1, di);
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          if (isEdgeLit) {
+            ctx.strokeStyle = tokenColor;
+            ctx.globalAlpha = 0.18 + 0.12 * animProgress;
+            ctx.lineWidth = 1.2;
+          } else {
+            ctx.strokeStyle = '#1e3a5f';
+            ctx.globalAlpha = 0.5;
+            ctx.lineWidth = 0.8;
+          }
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
+  }
+
+  // Draw animated "signal" particles along active edges
+  if (animRunning && litLayers.length >= 2) {
+    var srcL = litLayers[0];
+    var dstL = litLayers[litLayers.length-1];
+    if (srcL < LAYER_X.length && dstL < LAYER_X.length) {
+      for (var si2 = 0; si2 < NODES_PER_LAYER[srcL]; si2 += 2) {
+        for (var di2 = 0; di2 < NODES_PER_LAYER[dstL]; di2 += 3) {
+          var x1p = LAYER_X[srcL] + 18;
+          var y1p = getNodeY(srcL, si2);
+          var x2p = LAYER_X[dstL] - 18;
+          var y2p = getNodeY(dstL, di2);
+          var px = x1p + (x2p - x1p) * animProgress;
+          var py = y1p + (y2p - y1p) * animProgress;
+          ctx.beginPath();
+          ctx.arc(px, py, 3.5, 0, Math.PI*2);
+          ctx.fillStyle = tokenColor;
+          ctx.globalAlpha = 0.9;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
+  }
+
+  // Draw nodes for each layer
+  for (var li2 = 0; li2 < LAYER_X.length; li2++) {
+    var isLit = litLayers.indexOf(li2) >= 0;
+    var nNodes = NODES_PER_LAYER[li2];
+    for (var ni = 0; ni < nNodes; ni++) {
+      var nx = LAYER_X[li2];
+      var ny = getNodeY(li2, ni);
+
+      // Node activation value (for color intensity)
+      var vals = getLayerVals(li2);
+      var rawVal = vals ? vals[ni % vals.length] : 0;
+      var intensity = Math.min(Math.abs(rawVal) / 2.5, 1);
+      var isDead = (li2 === 2) && rawVal === 0; // dead ReLU neuron
+
+      // Draw node circle
+      ctx.beginPath();
+      ctx.arc(nx, ny, 16, 0, Math.PI*2);
+      if (isLit) {
+        if (isDead) {
+          // Dead neuron (ReLU killed it)
+          ctx.fillStyle = '#1e1a2a';
+          ctx.strokeStyle = '#f87171';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([3,3]);
+        } else {
+          var grad = ctx.createRadialGradient(nx, ny, 2, nx, ny, 16);
+          grad.addColorStop(0, tokenColor);
+          var dimC = tok.colorDim;
+          grad.addColorStop(1, dimC.replace('0.5)', intensity*0.6 + ')'));
+          ctx.fillStyle = grad;
+          ctx.strokeStyle = tokenColor;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([]);
+        }
+        ctx.fill();
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else {
+        ctx.fillStyle = '#0f1e35';
+        ctx.strokeStyle = '#1e3a5f';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      // Node value label
+      if (isLit && vals) {
+        ctx.fillStyle = isDead ? '#f87171' : '#fff';
+        ctx.font = 'bold 7.5px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        var dispVal = (isDead ? '✕' : rawVal.toFixed(2));
+        ctx.fillText(dispVal, nx, ny);
+      }
+    }
+
+    // Layer title label (below the column)
+    var lbl = LAYER_LABELS[li2];
+    var parts = lbl.split('\n');
+    ctx.fillStyle = isLit ? tokenColor : '#475569';
+    ctx.font = 'bold 9px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(parts[0], LAYER_X[li2], H - 48);
+    ctx.font = '8px Arial';
+    ctx.fillStyle = isLit ? tok.colorDim.replace('0.5)','0.9)') : '#334155';
+    ctx.fillText(parts[1], LAYER_X[li2], H - 35);
+
+    // "..." ellipsis above/below visible nodes to show there are more
+    if (nNodes > 4) {
+      ctx.fillStyle = isLit ? tok.colorDim.replace('0.5)','0.8)') : '#334155';
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('⋮ more ⋮', LAYER_X[li2], H - 62);
+    }
+  }
+
+  // Operation labels between layers
+  var opLabels = ['× W₁\n+b₁', 'ReLU\nmax(0,h)', '× W₂\n+b₂', 'Add &\nNorm'];
+  for (var oi = 0; oi < opLabels.length; oi++) {
+    var midX = (LAYER_X[oi] + LAYER_X[oi+1]) / 2;
+    var oparts = opLabels[oi].split('\n');
+    var isActiveOp = (curStep === oi+1) || (curStep === oi+2 && oi === 1) || (curStep === oi && oi === 3);
+    // simpler: highlight if curStep maps to this operation
+    var opActive = false;
+    if (oi === 0 && curStep === 1) opActive = true;
+    if (oi === 1 && curStep === 2) opActive = true;
+    if (oi === 2 && curStep === 3) opActive = true;
+    if (oi === 3 && curStep === 4) opActive = true;
+
+    var bg = opActive ? activeColor : '#1e293b';
+    var fg = opActive ? '#000' : '#4a5568';
+    if (!opActive && activeColor === '#f87171' && oi === 1) { bg='rgba(248,113,113,0.2)'; fg='#f87171'; }
+
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.roundRect(midX - 28, 12, 56, 28, 5);
+    ctx.fill();
+    ctx.fillStyle = fg;
+    ctx.font = 'bold 8.5px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(oparts[0], midX, 20);
+    ctx.font = '7.5px Arial';
+    ctx.fillText(oparts[1], midX, 31);
+  }
+
+  // Draw residual "skip" connection arc
+  var skip_x1 = LAYER_X[0] - 14;
+  var skip_x2 = LAYER_X[4] + 14;
+  var skip_y  = H - 78;
+  ctx.beginPath();
+  ctx.moveTo(skip_x1, 50);
+  ctx.lineTo(skip_x1, skip_y);
+  ctx.lineTo(skip_x2, skip_y);
+  ctx.lineTo(skip_x2, 50);
+  if (curStep === 4) {
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5,4]);
+  } else {
+    ctx.strokeStyle = '#1e3a5f';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,4]);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = curStep === 4 ? '#fbbf24' : '#334155';
+  ctx.font = 'bold 8px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('Residual Skip Connection (x + FFN(x))', (skip_x1+skip_x2)/2, skip_y + 12);
+}
+
+function getLayerVals(li) {
+  var tok = TOKENS[curTok];
+  if (li === 0) return tok.z_attn;
+  if (li === 1) return tok.h1_raw;
+  if (li === 2) return tok.h1_relu;
+  if (li === 3) return tok.h2_out;
+  if (li === 4) return tok.after_norm;
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANIMATION
+// ─────────────────────────────────────────────────────────────────────────────
+function startAnim() {
+  animProgress = 0;
+  animRunning = true;
+  function tick() {
+    animProgress += 0.015;
+    if (animProgress >= 1) { animProgress = 1; animRunning = false; }
+    drawNetwork();
+    if (animRunning) animFrame = requestAnimationFrame(tick);
+  }
+  if (animFrame) cancelAnimationFrame(animFrame);
+  animFrame = requestAnimationFrame(tick);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SIDEBAR LIVE VALUES
+// ─────────────────────────────────────────────────────────────────────────────
+function getLiveHTML() {
+  var tok = TOKENS[curTok];
+  var step = curStep;
+  var html = '';
+
+  if (step === 0) {
+    html += '<b style="color:' + tok.color + '">Z_attn for ' + tok.name + ' (dim 0–7 of 512)</b><br>';
+    html += '<div class="mmath">';
+    tok.z_attn.forEach(function(v,i) {
+      html += '<span class="val">' + v.toFixed(2) + '</span>' + (i<tok.z_attn.length-1?', ':'');
+    });
+    html += ',&nbsp;<i style="color:#475569">...</i><br><span class="op">→ 512 values total</span></div>';
+  }
+  else if (step === 1) {
+    html += '<b style="color:#9333ea">h = Z·W₁+b₁ (dim 0–9 of 2048)</b><br>';
+    html += '<div class="mmath">';
+    tok.h1_raw.forEach(function(v,i) {
+      var c = v < 0 ? '#f87171' : '#a5f3fc';
+      html += '<span style="color:' + c + '">' + v.toFixed(2) + '</span>' + (i<tok.h1_raw.length-1?', ':'');
+    });
+    html += ', <i style="color:#475569">...</i><br><span class="op">→ 2048 values total. Negatives exist!</span></div>';
+  }
+  else if (step === 2) {
+    html += '<b style="color:#f87171">h_relu = max(0, h) (first 10 shown)</b><br>';
+    html += '<div class="mmath">';
+    tok.h1_relu.forEach(function(v,i) {
+      var c = v === 0 ? '#f87171' : '#4ade80';
+      html += '<span style="color:' + c + '">' + (v === 0 ? '0.00✕' : v.toFixed(2)) + '</span>' + (i<tok.h1_relu.length-1?', ':'');
+    });
+    html += ', <i style="color:#475569">...</i><br>';
+    var dead = tok.h1_relu.filter(function(v){return v===0;}).length;
+    html += '<span style="color:#f87171">' + dead + '/' + tok.h1_relu.length + ' neurons dead (clamped to 0)</span></div>';
+  }
+  else if (step === 3) {
+    html += '<b style="color:#4ade80">FFN Output = h_relu·W₂+b₂ (dim 0–7 of 512)</b><br>';
+    html += '<div class="mmath">';
+    tok.h2_out.forEach(function(v,i) {
+      html += '<span class="val">' + v.toFixed(2) + '</span>' + (i<tok.h2_out.length-1?', ':'');
+    });
+    html += ', <i style="color:#475569">...</i><br><span class="op">→ 512 values. Same shape as input!</span></div>';
+    // show difference from input
+    html += '<br><b style="color:#94a3b8;font-size:0.75rem;">Δ from input (first 5 dims):</b><br>';
+    html += '<div class="mmath" style="font-size:0.75rem;">';
+    for(var i=0;i<5;i++){
+      var d = tok.h2_out[i] - tok.z_attn[i];
+      html += '<span style="color:' + (d>0?'#4ade80':'#f87171') + '">' + (d>0?'+':'') + d.toFixed(2) + '</span>' + (i<4?', ':'');
+    }
+    html += '</div>';
+  }
+  else if (step === 4) {
+    html += '<b style="color:#fbbf24">After Add & Norm (dim 0–7 of 512)</b><br>';
+    html += '<div class="mmath">';
+    tok.after_norm.forEach(function(v,i) {
+      html += '<span class="val">' + v.toFixed(2) + '</span>' + (i<tok.after_norm.length-1?', ':'');
+    });
+    html += ', <i style="color:#475569">...</i></div>';
+    html += '<br><div style="font-size:0.78rem;color:#94a3b8;">μ ≈ 0, σ ≈ 1 after LayerNorm</div>';
+  }
+  else if (step === 5) {
+    html += '<b style="color:#f472b6">Ready for next block or linear prediction</b><br><br>';
+    html += '<table class="dt"><thead><tr><th>Token</th><th>Dim 0</th><th>Dim 1</th><th>Dim 2</th></tr></thead><tbody>';
+    TOKENS.forEach(function(t) {
+      html += '<tr><td style="color:'+t.color+'">'+t.name+'</td>';
+      html += '<td>'+t.after_norm[0].toFixed(2)+'</td>';
+      html += '<td>'+t.after_norm[1].toFixed(2)+'</td>';
+      html += '<td>'+t.after_norm[2].toFixed(2)+'</td></tr>';
+    });
+    html += '</tbody></table>';
+    html += '<div style="margin-top:8px;font-size:0.77rem;color:#94a3b8;">→ Linear W_vocab ∈ ℝ<sup>512×|V|</sup> maps this to logits</div>';
+  }
+  return html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ARCH LAYER HIGHLIGHT
+// ─────────────────────────────────────────────────────────────────────────────
+var ALL_AL = ['al0','al1','al2','al3','al4','al5'];
+var AL_STYLES = [
+  {border:'#38bdf8',bg:'rgba(56,189,248,0.2)'},
+  {border:'#9333ea',bg:'rgba(147,51,234,0.2)'},
+  {border:'#f87171',bg:'rgba(248,113,113,0.2)'},
+  {border:'#4ade80',bg:'rgba(74,222,128,0.2)'},
+  {border:'#fbbf24',bg:'rgba(251,191,36,0.2)'},
+  {border:'#f472b6',bg:'rgba(244,114,182,0.2)'}
+];
+
+function highlightArch() {
+  var active = STEP_CONFIG[curStep].alActive;
+  ALL_AL.forEach(function(id, i) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (active.indexOf(i) >= 0) {
+      el.style.borderColor = AL_STYLES[i].border;
+      el.style.background  = AL_STYLES[i].bg;
+      el.style.boxShadow   = '0 0 12px ' + AL_STYLES[i].border + '55';
+    } else {
+      el.style.borderColor = 'transparent';
+      el.style.background  = '';
+      el.style.boxShadow   = '';
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────────────────────────────────────
+function render() {
+  var sc = STEP_CONFIG[curStep];
+  document.getElementById('nnTitle').innerHTML = sc.label;
+  document.getElementById('sinfo').innerHTML = 'Step ' + curStep + ' of 5 &nbsp;|&nbsp; Token: ' + TOKENS[curTok].name;
+
+  // Formula
+  var f = FORMULAS[curStep];
+  document.getElementById('formulaPanel').innerHTML = '<h4>' + f.h + '</h4>' + f.body;
+
+  // Arch highlight
+  highlightArch();
+
+  // Step chips
+  for (var i = 0; i <= 5; i++) {
+    var chip = document.getElementById('sc'+i);
+    if (chip) chip.classList.toggle('active', i === curStep);
+  }
+
+  // Token buttons
+  var tokIds = ['tok-we','tok-are','tok-friends'];
+  var tokSel  = ['sel','',''];
+  tokIds.forEach(function(id,i){ document.getElementById(id).classList.remove('sel'); });
+  document.getElementById(tokIds[curTok]).classList.add('sel');
+
+  // Live values sidebar
+  document.getElementById('liveContent').innerHTML = getLiveHTML();
+
+  // Start animation
+  startAnim();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────────────────────────────────────
+function nextStep() {
+  curStep = (curStep < 5) ? curStep + 1 : 0;
+  render();
+}
+
+function goStep(s) {
+  curStep = s;
+  render();
+}
+
+function setToken(t) {
+  curTok = t;
+  render();
+}
+
+function toggleAuto() {
+  if (autoInterval) {
+    clearInterval(autoInterval);
+    autoInterval = null;
+    document.getElementById('autoBtn').innerHTML = '▶ Auto Play';
+  } else {
+    autoInterval = setInterval(function() {
+      curStep++;
+      if (curStep > 5) {
+        curTok = (curTok + 1) % 3;
+        curStep = 0;
+      }
+      render();
+    }, 2200);
+    document.getElementById('autoBtn').innerHTML = '⏸ Pause';
+  }
+}
+
+function resetAll() {
+  if (autoInterval) { clearInterval(autoInterval); autoInterval = null; }
+  if (animFrame) cancelAnimationFrame(animFrame);
+  document.getElementById('autoBtn').innerHTML = '▶ Auto Play';
+  curStep = 0;
+  curTok  = 0;
+  animProgress = 0;
+  animRunning  = false;
+  render();
+}
+
+// Initial render
+render();
+</script>
+</body>
+</html>

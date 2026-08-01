@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPT Visualizer — Decoder-Only Autoregressive Language Model</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#07101e;color:#f0f4ff;font-family:Arial,sans-serif;padding:20px;}
+h1{font-size:1.7rem;color:#fff;text-align:center;margin-bottom:4px;}
+.subtitle{text-align:center;color:#94a3b8;font-size:0.9rem;margin-bottom:18px;}
+.hero-badge{display:flex;justify-content:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.hb{padding:6px 16px;border-radius:20px;font-size:0.82rem;font-weight:700;}
+.hb-org{background:rgba(248,113,113,0.15);border:1px solid #f87171;color:#f87171;}
+.hb-year{background:rgba(251,191,36,0.15);border:1px solid #fbbf24;color:#fbbf24;}
+.hb-arch{background:rgba(244,114,182,0.15);border:1px solid #f472b6;color:#f472b6;}
+.hb-params{background:rgba(192,132,252,0.15);border:1px solid #c084fc;color:#c084fc;}
+.controls{background:#0f1e35;border:1px solid #1e3a5f;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+button{cursor:pointer;border:none;border-radius:7px;font-size:0.86rem;font-weight:700;padding:9px 15px;transition:transform 0.1s;}
+button:active{transform:scale(0.97);}
+.btn-rose{background:linear-gradient(135deg,#e11d48,#9f1239);color:#fff;box-shadow:0 4px 12px rgba(225,29,72,0.35);}
+.btn-blue{background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;}
+.btn-gray{background:#1e293b;color:#cbd5e1;border:1px solid #334155;}
+.step-row{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.sc{flex:1;min-width:110px;background:#0f1e35;border:1px solid #1e3a5f;border-radius:7px;padding:8px 6px;text-align:center;font-size:0.74rem;cursor:pointer;transition:all 0.2s;}
+.sc:hover{border-color:#e11d48;}
+.sc.active{border-color:#e11d48;background:rgba(225,29,72,0.1);box-shadow:0 0 10px rgba(225,29,72,0.2);}
+.sc .sn{display:block;font-size:0.6rem;color:#fb7185;font-weight:800;margin-bottom:2px;}
+.sc .st{font-weight:700;color:#fff;font-size:0.78rem;}
+.layout{display:grid;grid-template-columns:1fr 290px;gap:16px;}
+@media(max-width:900px){.layout{grid-template-columns:1fr;}}
+.main-panel{background:#0f1e35;border:1px solid #1e3a5f;border-radius:12px;padding:18px;}
+.panel-title{font-size:1rem;font-weight:700;color:#fb7185;margin-bottom:12px;}
+.formula-box{background:#060f1e;border:1px solid #1e3a5f;border-left:4px solid #e11d48;border-radius:8px;padding:13px;margin-bottom:14px;font-size:0.84rem;line-height:1.7;}
+.formula-box h4{color:#fb7185;font-size:0.9rem;margin-bottom:6px;}
+code{background:#1e293b;padding:2px 6px;border-radius:4px;font-family:'Courier New',monospace;font-size:0.79rem;color:#a5f3fc;}
+.dt{width:100%;border-collapse:collapse;font-size:0.81rem;}
+.dt th{text-align:left;padding:7px 9px;background:#060f1e;color:#94a3b8;border-bottom:1px solid #1e3a5f;}
+.dt td{padding:7px 9px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:top;}
+.dt tr.hl{background:rgba(225,29,72,0.08);}
+.cRo{color:#fb7185;font-weight:700;} .cG{color:#4ade80;font-weight:700;}
+.cB{color:#38bdf8;font-weight:700;} .cA{color:#fbbf24;font-weight:700;}
+.cP{color:#c084fc;font-weight:700;} .cR{color:#f87171;font-weight:700;}
+.cPk{color:#f472b6;font-weight:700;}
+.tok{padding:5px 9px;border-radius:6px;font-size:0.8rem;font-weight:700;font-family:'Courier New',monospace;}
+.tok-row{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0;}
+.tk-done{background:rgba(74,222,128,0.15);border:1px solid #4ade80;color:#4ade80;}
+.tk-pred{background:rgba(251,191,36,0.2);border:2px solid #fbbf24;color:#fbbf24;animation:glow 1s infinite;}
+.tk-fut{background:#0f1e35;border:1px dashed #334155;color:#334155;}
+@keyframes glow{0%,100%{box-shadow:0 0 6px rgba(251,191,36,0.5);}50%{box-shadow:0 0 14px rgba(251,191,36,0.9);}}
+.hc{padding:7px 5px;border-radius:4px;text-align:center;font-weight:700;font-size:0.72rem;min-width:55px;}
+.hc-mask{background:rgba(248,113,113,0.15);color:#f87171;border:1px dashed rgba(248,113,113,0.35);text-decoration:line-through;font-size:0.65rem;}
+.hl-h{color:#94a3b8;text-align:center;font-size:0.7rem;font-weight:700;}
+.hl-l{font-weight:700;color:#fb7185;text-align:right;padding-right:6px;font-size:0.72rem;}
+.hmap-wrap{overflow-x:auto;}
+.hmap{display:inline-grid;gap:3px;align-items:center;}
+.sidebar{display:flex;flex-direction:column;gap:12px;}
+.sb{background:#0f1e35;border:1px solid #1e3a5f;border-radius:10px;padding:13px;}
+.sb-t{font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8;margin-bottom:8px;}
+.spec-row{display:flex;justify-content:space-between;font-size:0.8rem;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.spec-lbl{color:#94a3b8;} .spec-val{font-weight:700;color:#fb7185;}
+.gpt-block{border-radius:6px;padding:8px 12px;font-size:0.78rem;font-weight:700;border:1.5px solid transparent;text-align:center;margin-bottom:5px;}
+.gb-in{background:rgba(251,191,36,0.1);border-color:#fbbf24;color:#fbbf24;}
+.gb-pe{background:rgba(56,189,248,0.1);border-color:#38bdf8;color:#38bdf8;}
+.gb-dec{background:rgba(225,29,72,0.1);border-color:#e11d48;color:#fb7185;}
+.gb-out{background:rgba(74,222,128,0.1);border-color:#4ade80;color:#4ade80;}
+.gb-arrow{text-align:center;color:#475569;font-size:0.9rem;margin:1px 0;}
+.gen-seq{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
+.gs-done{padding:4px 8px;border-radius:5px;background:rgba(74,222,128,0.2);border:1px solid #4ade80;color:#4ade80;font-size:0.78rem;font-weight:700;font-family:'Courier New',monospace;}
+.gs-cur{padding:4px 8px;border-radius:5px;background:rgba(251,191,36,0.2);border:1px solid #fbbf24;color:#fbbf24;font-size:0.78rem;font-weight:700;font-family:'Courier New',monospace;}
+</style>
+</head>
+<body>
+<h1>🧬 GPT — Generative Pre-trained Transformer</h1>
+<div class="subtitle">OpenAI, 2018–2020 · Radford et al. · Decoder-Only · Causal Left-to-Right · Autoregressive Generation</div>
+<div class="hero-badge">
+  <span class="hb hb-org">🏢 OpenAI, 2018</span>
+  <span class="hb hb-year">📄 Radford et al.</span>
+  <span class="hb hb-arch">🏗️ Decoder-Only</span>
+  <span class="hb hb-params">⚡ GPT-3: 175B params</span>
+</div>
+<div class="controls">
+  <button class="btn-rose" onclick="nextStep()">⏩ Next Step</button>
+  <button class="btn-blue" id="autoBtn" onclick="toggleAuto()">▶ Auto Play</button>
+  <button class="btn-gray" onclick="resetAll()">🔄 Reset</button>
+  <span id="sinfo" style="color:#94a3b8;font-size:0.83rem;"></span>
+</div>
+<div class="step-row">
+  <div class="sc active" id="sc0" onclick="goStep(0)"><span class="sn">STEP 0</span><div class="st">Architecture Overview</div></div>
+  <div class="sc" id="sc1" onclick="goStep(1)"><span class="sn">STEP 1</span><div class="st">BPE Tokenization</div></div>
+  <div class="sc" id="sc2" onclick="goStep(2)"><span class="sn">STEP 2</span><div class="st">Causal Masked Attn</div></div>
+  <div class="sc" id="sc3" onclick="goStep(3)"><span class="sn">STEP 3</span><div class="st">Autoregressive LM</div></div>
+  <div class="sc" id="sc4" onclick="goStep(4)"><span class="sn">STEP 4</span><div class="st">Text Generation</div></div>
+  <div class="sc" id="sc5" onclick="goStep(5)"><span class="sn">STEP 5</span><div class="st">GPT-1 → GPT-3 Scale</div></div>
+  <div class="sc" id="sc6" onclick="goStep(6)"><span class="sn">STEP 6</span><div class="st">Translation (No Encoder!)</div></div>
+  <div class="sc" id="sc7" onclick="goStep(7)"><span class="sn">STEP 7</span><div class="st">Summarization Task</div></div>
+  <div class="sc" id="sc8" onclick="goStep(8)"><span class="sn">STEP 8</span><div class="st">Training Data Format</div></div>
+</div>
+<div class="layout">
+  <div class="main-panel">
+    <div class="panel-title" id="panelTitle">GPT Architecture Overview</div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="workspace"></div>
+  </div>
+  <div class="sidebar">
+    <div class="sb">
+      <div class="sb-t">GPT Model Specs</div>
+      <div class="spec-row"><span class="spec-lbl">Architecture</span><span class="spec-val">Decoder-Only</span></div>
+      <div class="spec-row"><span class="spec-lbl">Attention</span><span class="spec-val">Causal (Left→Right)</span></div>
+      <div class="spec-row"><span class="spec-lbl">No Encoder?</span><span class="spec-val">Correct — none!</span></div>
+      <div class="spec-row"><span class="spec-lbl">No Cross-Attn?</span><span class="spec-val">Correct — none!</span></div>
+      <div class="spec-row"><span class="spec-lbl">GPT-1 Layers</span><span class="spec-val">12</span></div>
+      <div class="spec-row"><span class="spec-lbl">GPT-2 Layers</span><span class="spec-val">12–48</span></div>
+      <div class="spec-row"><span class="spec-lbl">GPT-3 Layers</span><span class="spec-val">96</span></div>
+      <div class="spec-row"><span class="spec-lbl">GPT-3 Hidden Dim</span><span class="spec-val">12,288</span></div>
+      <div class="spec-row"><span class="spec-lbl">Tokenizer</span><span class="spec-val">BPE</span></div>
+      <div class="spec-row"><span class="spec-lbl">Vocab Size</span><span class="spec-val">50,257</span></div>
+      <div class="spec-row"><span class="spec-lbl">GPT-3 Params</span><span class="spec-val">175B</span></div>
+      <div class="spec-row"><span class="spec-lbl">Pre-training</span><span class="spec-val">Causal LM (predict next)</span></div>
+    </div>
+    <div class="sb">
+      <div class="sb-t">GPT Block Diagram</div>
+      <div class="gpt-block gb-out">Linear + Softmax → Next Token</div>
+      <div class="gb-arrow">⬆</div>
+      <div class="gpt-block gb-dec" id="sb-dec">N× Decoder Block<div style="font-size:0.68rem;color:#94a3b8;font-weight:400;">Causal Masked Attn + FFNN + Add&Norm</div></div>
+      <div class="gb-arrow">⬆</div>
+      <div class="gpt-block gb-pe">Token Embeddings + Positional Embeddings</div>
+      <div class="gb-arrow">⬆</div>
+      <div class="gpt-block gb-in">BPE Tokenized Input Text</div>
+      <div style="margin-top:10px;background:rgba(225,29,72,0.1);border:1px solid rgba(225,29,72,0.4);border-radius:6px;padding:8px;font-size:0.75rem;">
+        <b class="cRo">No Encoder block!</b><br>
+        <b class="cRo">No Cross-Attention!</b><br>
+        <span style="color:#94a3b8;">Pure self-attention (causal) only</span>
+      </div>
+      <div style="margin-top:8px;font-size:0.78rem;line-height:1.5;color:#94a3b8;">
+        <b class="cA">Live generation:</b>
+        <div class="gen-seq" id="genSeqSb">
+          <span class="gs-done">we</span><span class="gs-done">are</span><span class="gs-cur">?</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var STEPS = [
+{
+  title:"GPT Architecture — Decoder-Only, No Encoder, No Cross-Attention",
+  formula:{h:"🏗️ GPT removes the Encoder entirely — only Decoder blocks remain",
+  body:`The original Transformer had Encoder + Decoder. GPT keeps only the Decoder stack.<br>
+Each GPT block has <b>just two sub-layers</b> (vs Decoder's three):<br>
+1. <b>Causal Masked Multi-Head Self-Attention</b> (left-to-right only)<br>
+2. <b>Feed-Forward Network</b> (FFNN)<br><br>
+<b>No Cross-Attention</b> — there's no encoder output to attend to!<br>
+<b>Why this works:</b> GPT's goal is purely generative — predict the next token given all previous tokens.`},
+  workspace:`<table class="dt"><thead><tr><th>Component</th><th>GPT-1</th><th>GPT-2 (XL)</th><th>GPT-3</th><th>Purpose</th></tr></thead><tbody>
+<tr class="hl"><td class="cRo">Decoder Blocks</td><td>12</td><td>48</td><td><b>96</b></td><td>Stacked causal attention + FFNN</td></tr>
+<tr><td class="cB">Hidden Dim</td><td>768</td><td>1600</td><td>12,288</td><td>Vector size at each layer</td></tr>
+<tr><td class="cA">Attention Heads</td><td>12</td><td>25</td><td>96</td><td>Parallel attention subspaces</td></tr>
+<tr><td class="cG">Parameters</td><td>~117M</td><td>~1.5B</td><td><b>175B</b></td><td>Learned weights</td></tr>
+<tr><td class="cP">Context Window</td><td>512</td><td>1024</td><td>2048</td><td>Max tokens in one sequence</td></tr>
+</tbody></table>
+<div style="margin-top:12px;background:rgba(225,29,72,0.08);border:1px solid rgba(225,29,72,0.4);border-radius:8px;padding:10px;font-size:0.84rem;">
+<b class="cRo">🔑 Key GPT vs BERT difference:</b><br>
+BERT reads the whole sentence bidirectionally (good at understanding).<br>
+GPT reads left→right only (good at generating fluent text, but can't see future tokens).
+</div>`
+},
+{
+  title:"BPE Tokenization — Byte Pair Encoding",
+  formula:{h:"🔤 BPE: Subword tokenization that handles any text, no unknown words",
+  body:`GPT uses <b>Byte Pair Encoding (BPE)</b> — iteratively merges the most frequent adjacent character pairs:<br>
+<code>Vocabulary: 50,257 tokens</code> (GPT-2/3)<br><br>
+<b>How BPE works:</b><br>
+• Start: every character is a separate token: <code>f r i e n d s</code><br>
+• Merge most frequent pair: <code>f r</code> → <code>fr</code><br>
+• Repeat: <code>fr ie</code> → <code>frie</code> → <code>frien</code> → <code>friend</code> → <code>friends</code><br><br>
+<b>No [UNK] tokens!</b> Rare words are split into known subwords.`},
+  workspace:`<table class="dt"><thead><tr><th>Input Text</th><th>BPE Tokens</th><th>Token IDs</th><th>Note</th></tr></thead><tbody>
+<tr class="hl"><td class="cB">"we are friends"</td><td class="cRo">["we", " are", " friends"]</td><td>[732, 389, 2460]</td><td>Common words = single tokens</td></tr>
+<tr><td class="cG">"tokenization"</td><td class="cRo">["token", "ization"]</td><td>[30001, 1634]</td><td>Split into subwords</td></tr>
+<tr><td class="cA">"ChatGPT"</td><td class="cRo">["Chat", "G", "PT"]</td><td>[14126, 38, 11571]</td><td>Rare compound = split</td></tr>
+<tr><td class="cP">"हम"</td><td class="cRo">["ह", "म"]</td><td>[49012, 49087]</td><td>Non-ASCII: byte-level fallback</td></tr>
+</tbody></table>
+<div style="margin-top:10px;background:#060f1e;border:1px solid #1e3a5f;border-radius:7px;padding:10px;font-size:0.82rem;">
+<b class="cA">GPT vs BERT tokenization:</b><br>
+BERT uses <b>WordPiece</b> (30,522 tokens, marks subwords with ##): <code>friends → friend ##s</code><br>
+GPT uses <b>BPE</b> (50,257 tokens, marks spaces with Ġ): <code>friends → Ġfriends</code>
+</div>`
+},
+{
+  title:"Causal Masked Self-Attention — Left-to-Right Only (No Peeking!)",
+  formula:{h:"🛡️ Causal Mask: Softmax(Q·Kᵀ/√d_k + M) where M[i,j] = -∞ if j > i",
+  body:`GPT applies a <b>lower-triangular mask</b> to the attention scores.<br>
+This ensures token at position <i>i</i> can ONLY see positions 0, 1, ..., i (past + self).<br>
+Future positions j > i get score <code>-∞</code> → Softmax gives 0% weight.<br><br>
+<b>This is how GPT is trained:</b> "Given 'we are', predict the next word."<br>
+All positions are computed in parallel during training — the mask enforces the constraint.`},
+  workspace:`<div style="font-size:0.82rem;margin-bottom:8px;color:#94a3b8;">Causal attention matrix for "we are friends" (upper triangle blocked):</div>
+<div class="hmap-wrap"><div class="hmap" style="grid-template-columns:70px 65px 65px 75px;">
+<div class="hl-h">Q\K</div><div class="hl-h">"we"</div><div class="hl-h">"are"</div><div class="hl-h">"friends"</div>
+<div class="hl-l">"we"</div><div class="hc" style="background:rgba(225,29,72,0.8);color:#fff;">100%</div><div class="hc hc-mask">0% (−∞)</div><div class="hc hc-mask">0% (−∞)</div>
+<div class="hl-l">"are"</div><div class="hc" style="background:rgba(225,29,72,0.55);color:#fff;">42%</div><div class="hc" style="background:rgba(225,29,72,0.8);color:#fff;">58%</div><div class="hc hc-mask">0% (−∞)</div>
+<div class="hl-l">"friends"</div><div class="hc" style="background:rgba(225,29,72,0.3);color:#fff;">20%</div><div class="hc" style="background:rgba(225,29,72,0.55);color:#fff;">40%</div><div class="hc" style="background:rgba(225,29,72,0.65);color:#fff;">40%</div>
+</div></div>
+<div style="margin-top:10px;background:rgba(225,29,72,0.08);border:1px solid rgba(225,29,72,0.4);border-radius:7px;padding:10px;font-size:0.83rem;">
+<b class="cRo">🛡️ Causal masking guarantees:</b> when predicting "friends", the model only uses "we are" — NOT future tokens.<br>
+<b class="cG">BERT contrast:</b> BERT has no mask — "are" can see "friends" on its right. That's why BERT understands better but can't generate.
+</div>`
+},
+{
+  title:"Autoregressive Language Model Pre-training — Predict the Next Token",
+  formula:{h:"📈 Training Objective: Maximize P(w_t | w_1, w_2, ..., w_{t-1})",
+  body:`GPT is trained with a simple next-token prediction objective:<br>
+<code>Loss = -Σ_t log P(w_t | w_1 ... w_{t-1})</code><br><br>
+For sequence <b>"we are friends"</b>, GPT trains on all positions at once:<br>
+• Position 1: predict "are" given "we"<br>
+• Position 2: predict "friends" given "we are"<br>
+• Position 3: predict "&lt;EOS&gt;" given "we are friends"<br><br>
+<b>No labels needed!</b> The text itself is the supervision (self-supervised learning).`},
+  workspace:`<table class="dt"><thead><tr><th>Position</th><th>Context Given</th><th>True Next Token</th><th>P(true next)</th><th>Loss</th></tr></thead><tbody>
+<tr class="hl"><td>t=1</td><td class="cB">"we"</td><td class="cG">"are"</td><td>88.4%</td><td class="cA">-log(0.884)=0.123</td></tr>
+<tr><td>t=2</td><td class="cB">"we are"</td><td class="cG">"friends"</td><td>91.8%</td><td class="cA">-log(0.918)=0.086</td></tr>
+<tr><td>t=3</td><td class="cB">"we are friends"</td><td class="cG">"&lt;EOS&gt;"</td><td>94.2%</td><td class="cA">-log(0.942)=0.060</td></tr>
+</tbody></table>
+<div style="margin-top:10px;background:#060f1e;border:1px solid #1e3a5f;border-radius:7px;padding:10px;font-size:0.82rem;">
+<b class="cA">Total Loss = (0.123 + 0.086 + 0.060) / 3 = 0.090</b><br><br>
+<b class="cRo">Training scale:</b> GPT-3 was trained on ~570GB of text (WebText, Wikipedia, Books, etc.)<br>
+This means billions of next-token prediction examples — no human labeling required!
+</div>`
+},
+{
+  title:"Text Generation — Autoregressive Decoding at Inference",
+  formula:{h:"🔁 Inference: Loop — predict 1 token → append → repeat",
+  body:`At inference, GPT generates text one token at a time:<br>
+<code>for t = 1, 2, 3, ...:</code><br>
+<code>&nbsp;&nbsp;y_t = argmax P(w | y_1 ... y_{t-1})</code><br>
+<code>&nbsp;&nbsp;if y_t == &lt;EOS&gt;: break</code><br><br>
+<b>Greedy decoding:</b> always pick highest probability token<br>
+<b>Temperature sampling:</b> P(w) = softmax(L/T) — T>1 = more random, T<1 = more confident<br>
+<b>Top-K / Top-P:</b> sample from top K tokens or top-p probability mass`},
+  workspace:`<div style="font-size:0.82rem;margin-bottom:10px;color:#94a3b8;">Prompt: <b>"Translate: we are friends →"</b></div>
+<div style="font-size:0.8rem;font-weight:700;color:#94a3b8;margin-bottom:4px;">Step-by-step generation (Greedy, T=1.0):</div>
+<table class="dt"><thead><tr><th>Iteration</th><th>Input to GPT</th><th>Top-5 Predictions</th><th>Selected</th></tr></thead><tbody>
+<tr class="hl"><td>t=1</td><td class="cB">"Translate: we are friends →"</td><td>"हम"=42%, "we"=18%, "friends"=12%...</td><td class="cG">"हम"</td></tr>
+<tr><td>t=2</td><td class="cB">"... हम"</td><td>"दोस्त"=65%, "हैं"=22%, "हो"=5%...</td><td class="cG">"दोस्त"</td></tr>
+<tr><td>t=3</td><td class="cB">"... हम दोस्त"</td><td>"हैं"=78%, "हो"=12%, "&lt;EOS&gt;"=5%...</td><td class="cG">"हैं"</td></tr>
+<tr><td>t=4</td><td class="cB">"... हम दोस्त हैं"</td><td>"&lt;EOS&gt;"=88%, "।"=7%, "."=3%...</td><td class="cRo">"&lt;EOS&gt;" → STOP</td></tr>
+</tbody></table>
+<div style="margin-top:10px;background:rgba(74,222,128,0.1);border:1px solid #4ade80;border-radius:7px;padding:8px;font-size:0.84rem;">
+<b class="cG">✅ Output: "हम दोस्त हैं"</b><br>
+<span style="color:#94a3b8;">GPT-3 can do this zero-shot — no translation fine-tuning needed!</span>
+</div>`
+},
+{
+  title:"GPT-1 → GPT-2 → GPT-3 — The Power of Scale",
+  formula:{h:"📈 Scaling Law: More parameters + more data = emergent capabilities",
+  body:`OpenAI discovered that simply <b>scaling up</b> a decoder-only Transformer produces dramatically better capabilities:<br>
+<b>GPT-1 (2018):</b> Pre-train + fine-tune on task-specific data<br>
+<b>GPT-2 (2019):</b> Zero-shot — no fine-tuning needed for many tasks<br>
+<b>GPT-3 (2020):</b> Few-shot in-context learning — give 3 examples in prompt, model generalizes!`},
+  workspace:`<table class="dt"><thead><tr><th>Model</th><th>Year</th><th>Params</th><th>Training Tokens</th><th>Key Capability</th></tr></thead><tbody>
+<tr><td class="cRo">GPT-1</td><td>2018</td><td>117M</td><td>~5B</td><td>Supervised fine-tuning needed</td></tr>
+<tr><td class="cRo">GPT-2</td><td>2019</td><td>1.5B</td><td>40B</td><td>Zero-shot on many tasks</td></tr>
+<tr class="hl"><td class="cRo">GPT-3</td><td>2020</td><td><b>175B</b></td><td>300B</td><td class="cG">Few-shot in-context learning</td></tr>
+<tr><td class="cRo">GPT-4</td><td>2023</td><td>~1T (est.)</td><td>>1T</td><td class="cG">Multimodal, instruction following</td></tr>
+</tbody></table>
+<div style="margin-top:10px;background:rgba(225,29,72,0.08);border:1px solid rgba(225,29,72,0.4);border-radius:7px;padding:10px;font-size:0.83rem;">
+<b class="cA">🎓 In-Context Learning (GPT-3):</b><br>
+Prompt: <i>"English: hello → Hindi: नमस्ते. English: we are friends → Hindi:"</i><br>
+GPT-3 completes: <b class="cG">"हम दोस्त हैं"</b> — without any weight updates!<br><br>
+<b class="cRo">This is the fundamental shift:</b> The model becomes a general-purpose task-solver simply by reading the prompt.
+</div>`
+},
+{
+  title:"Step 6 — How GPT Translates WITHOUT an Encoder (The Unified Sequence Trick)",
+  formula:{h:"🌉 GPT's Secret: Input + Separator + Output = ONE single token sequence fed to the same decoder",
+  body:`T5/original Transformer use <b>two separate streams</b>: Encoder reads source, Decoder generates target via Cross-Attention.<br><br>
+GPT has <b>no encoder, no cross-attention</b>. Instead, it concatenates everything into ONE sequence:<br>
+<code>[Task Prompt] + [Source Text] + [Separator] + [Target Text] + &lt;EOS&gt;</code><br><br>
+The causal self-attention lets every target token attend to ALL previous tokens (prompt + source) on its left.<br>
+<b>The source tokens IN THE CONTEXT WINDOW act as the encoder substitute!</b><br>
+Loss is computed <b>only on the target tokens</b> — not on the prompt or source.`},
+  workspace:`<div style="font-size:0.84rem;font-weight:700;color:#fb7185;margin-bottom:10px;">🔑 GPT Translation = One Long Token Sequence (NOT two separate streams)</div>
+<div style="background:#060f1e;border:1px solid #1e3a5f;border-radius:8px;padding:12px;margin-bottom:14px;">
+  <div style="font-size:0.78rem;color:#94a3b8;margin-bottom:8px;">Complete token sequence fed into GPT (ALL as one flat array):</div>
+  <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
+    <span style="padding:4px 8px;border-radius:5px;background:rgba(251,191,36,0.2);border:1px solid #fbbf24;color:#fbbf24;font-size:0.77rem;font-weight:700;font-family:monospace;">Translate EN to HI:</span>
+    <span style="padding:4px 8px;border-radius:5px;background:rgba(56,189,248,0.15);border:1px solid #38bdf8;color:#38bdf8;font-size:0.77rem;font-weight:700;font-family:monospace;">we</span>
+    <span style="padding:4px 8px;border-radius:5px;background:rgba(56,189,248,0.15);border:1px solid #38bdf8;color:#38bdf8;font-size:0.77rem;font-weight:700;font-family:monospace;">are</span>
+    <span style="padding:4px 8px;border-radius:5px;background:rgba(56,189,248,0.15);border:1px solid #38bdf8;color:#38bdf8;font-size:0.77rem;font-weight:700;font-family:monospace;">friends</span>
+    <span style="padding:4px 8px;border-radius:5px;background:rgba(192,132,252,0.2);border:1px solid #c084fc;color:#c084fc;font-size:0.77rem;font-weight:700;font-family:monospace;">=&gt;</span>
+    <span style="padding:4px 8px;border-radius:5px;background:rgba(74,222,128,0.2);border:2px solid #4ade80;color:#4ade80;font-size:0.77rem;font-weight:700;font-family:monospace;">हम</span>
+    <span style="padding:4px 8px;border-radius:5px;background:rgba(74,222,128,0.2);border:2px solid #4ade80;color:#4ade80;font-size:0.77rem;font-weight:700;font-family:monospace;">दोस्त</span>
+    <span style="padding:4px 8px;border-radius:5px;background:rgba(74,222,128,0.2);border:2px solid #4ade80;color:#4ade80;font-size:0.77rem;font-weight:700;font-family:monospace;">हैं</span>
+    <span style="padding:4px 8px;border-radius:5px;background:rgba(248,113,113,0.15);border:1px solid #f87171;color:#f87171;font-size:0.77rem;font-weight:700;font-family:monospace;">&lt;EOS&gt;</span>
+  </div>
+  <div style="margin-top:7px;font-size:0.75rem;">
+    <span style="color:#fbbf24;">■</span> Prompt &nbsp; <span style="color:#38bdf8;">■</span> Source Input (acts as encoder) &nbsp; <span style="color:#c084fc;">■</span> Separator &nbsp; <span style="color:#4ade80;">■</span> Target Output (loss here) &nbsp; <span style="color:#f87171;">■</span> End
+  </div>
+</div>
+<table class="dt"><thead><tr><th>Token Position</th><th>Token</th><th>Role</th><th>Loss Computed?</th><th>What Causal Attn Sees</th></tr></thead><tbody>
+<tr><td>0</td><td class="cA">"Translate EN to HI:"</td><td class="cA">Task Prompt</td><td style="color:#475569;">No</td><td>Only pos 0</td></tr>
+<tr><td>1</td><td class="cB">"we"</td><td class="cB">Source token 1</td><td style="color:#475569;">No</td><td>Pos 0-1</td></tr>
+<tr><td>2</td><td class="cB">"are"</td><td class="cB">Source token 2</td><td style="color:#475569;">No</td><td>Pos 0-2</td></tr>
+<tr><td>3</td><td class="cB">"friends"</td><td class="cB">Source token 3</td><td style="color:#475569;">No</td><td>Pos 0-3</td></tr>
+<tr><td>4</td><td class="cP">"=&gt;"</td><td class="cP">Separator</td><td style="color:#475569;">No</td><td>Pos 0-4</td></tr>
+<tr class="hl"><td>5</td><td class="cG">"हम"</td><td class="cG">Target token 1</td><td class="cG">✅ -log P("हम"|pos 0-4)</td><td>Pos 0-5 — sees ALL source!</td></tr>
+<tr class="hl"><td>6</td><td class="cG">"दोस्त"</td><td class="cG">Target token 2</td><td class="cG">✅ -log P("दोस्त"|pos 0-5)</td><td>Pos 0-6</td></tr>
+<tr class="hl"><td>7</td><td class="cG">"हैं"</td><td class="cG">Target token 3</td><td class="cG">✅ -log P("हैं"|pos 0-6)</td><td>Pos 0-7</td></tr>
+<tr class="hl"><td>8</td><td class="cR">&lt;EOS&gt;</td><td class="cR">Stop token</td><td class="cG">✅ -log P(&lt;EOS&gt;|pos 0-7)</td><td>Pos 0-8</td></tr>
+</tbody></table>
+<div style="margin-top:10px;background:rgba(225,29,72,0.08);border:1px solid rgba(225,29,72,0.4);border-radius:7px;padding:10px;font-size:0.84rem;">
+<b class="cRo">🔑 At inference:</b> Feed only positions 0-4 (prompt + source + separator). GPT generates positions 5,6,7,8 autoregressively. The source tokens remain in the attention window — GPT "reads" them via self-attention instead of cross-attention!
+</div>`
+},
+{
+  title:"Step 7 — GPT Summarization: Training Data Layout & Inference Flow",
+  formula:{h:"📝 Summarization Format: [Article] + 'TL;DR:' + [Summary] — same causal LM, different prefix",
+  body:`Same unified-sequence trick, different separator keyword (<code>TL;DR:</code>).<br>
+<b>Training:</b> Full article + separator + summary all concatenated → causal LM loss on summary tokens only.<br>
+<b>Inference:</b> Provide article + separator → GPT generates summary tokens autoregressively until &lt;EOS&gt;.<br><br>
+GPT-2 showed this works zero-shot without any summarization fine-tuning! GPT-3 is even better with a few examples in the prompt (few-shot).`},
+  workspace:`<div style="font-size:0.84rem;font-weight:700;color:#fb7185;margin-bottom:8px;">📊 Training Sequence for Summarization Task</div>
+<div style="background:#060f1e;border:1px solid #1e3a5f;border-radius:8px;padding:12px;margin-bottom:12px;font-size:0.82rem;line-height:1.9;font-family:monospace;">
+  <span style="color:#fbbf24;">summarize: </span><span style="color:#38bdf8;">We are three friends — Alice, Bob and Carol. We met in college in 2010 and have been inseparable ever since. We travel together every year and share everything.</span><span style="color:#c084fc;"> TL;DR: </span><span style="color:#4ade80;">Three college friends who met in 2010 travel together every year.</span><span style="color:#f87171;"> &lt;EOS&gt;</span>
+</div>
+<table class="dt" style="margin-bottom:12px;"><thead><tr><th>Token Region</th><th>Example Tokens</th><th>Loss?</th><th>Role</th></tr></thead><tbody>
+<tr><td class="cA">Task Prefix</td><td class="cA">"summarize:"</td><td style="color:#475569;">No</td><td>Signals: this is summarization task</td></tr>
+<tr><td class="cB">Source Article</td><td class="cB">~50-200 tokens describing the story</td><td style="color:#475569;">No (masked)</td><td>Acts as "encoder" — sits in context window</td></tr>
+<tr><td class="cP">Separator</td><td class="cP">"TL;DR:"</td><td style="color:#475569;">No</td><td>Signals: now generate compressed summary</td></tr>
+<tr class="hl"><td class="cG">Target Summary</td><td class="cG">~20-40 summary tokens</td><td class="cG">✅ YES — cross-entropy loss</td><td>Model learns to compress article into summary</td></tr>
+<tr class="hl"><td class="cR">End Token</td><td class="cR">&lt;EOS&gt;</td><td class="cG">✅ YES</td><td>Model learns when to stop</td></tr>
+</tbody></table>
+<div style="font-size:0.84rem;font-weight:700;color:#fff;margin-bottom:8px;">🔁 Training vs Inference Side-by-Side</div>
+<table class="dt"><thead><tr><th>Aspect</th><th>Training Time</th><th>Inference Time</th></tr></thead><tbody>
+<tr><td class="cA">Input</td><td>Prompt + Article + TL;DR: + <span class="cG">Summary tokens</span></td><td>Prompt + Article + TL;DR: <b>(only!)</b></td></tr>
+<tr><td class="cB">Processing</td><td>All tokens in parallel (teacher forcing)</td><td>Tokens generated one-by-one (autoregressive)</td></tr>
+<tr><td class="cP">Loss / Output</td><td>Cross-entropy on summary tokens only</td><td>Each generated token added to context</td></tr>
+<tr><td class="cG">Speed</td><td>Fast: full sequence in 1 pass</td><td>Slower: N decoder passes for N summary tokens</td></tr>
+<tr><td class="cT">Attention to article</td><td>✅ Summary tokens attend to article via causal self-attn</td><td>✅ Same — generated tokens see article in context window</td></tr>
+</tbody></table>
+<div style="margin-top:10px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.3);border-radius:7px;padding:9px;font-size:0.83rem;">
+<b class="cG">Why this works without an encoder:</b> When generating "Three college friends...", token "Three" at position 52 attends back to all 51 article tokens via causal self-attention. Those 51 tokens are the encoder substitute — they're just in the left context window!
+</div>`
+},
+{
+  title:"Step 8 — Universal Training Data Format for ALL GPT Tasks",
+  formula:{h:"🗂️ All tasks = [Instruction] + [Input] + [Delimiter] + [Output] + &lt;EOS&gt; — one sequence, one loss",
+  body:`GPT learns to do translation, summarization, QA, classification, coding — ALL from the exact same training format!<br>
+The ONLY difference between tasks is: (1) the task instruction prefix, (2) the separator keyword, and (3) the training data content.<br>
+<b>The model architecture doesn't change.</b> The loss function doesn't change. Only the text does!`},
+  workspace:`<div style="font-size:0.84rem;font-weight:700;color:#fff;margin-bottom:10px;">📋 Every Task as ONE Token Sequence</div>
+<table class="dt" style="margin-bottom:14px;"><thead><tr><th>Task</th><th style="font-family:monospace;">Full Training Sequence <span style="color:#4ade80;">(green = loss computed here)</span></th></tr></thead><tbody>
+<tr class="hl"><td class="cRo" style="white-space:nowrap;">Translation</td><td style="font-family:monospace;font-size:0.77rem;line-height:1.8;"><span style="color:#fbbf24;">Translate EN to HI: </span><span style="color:#38bdf8;">we are friends</span> <span style="color:#c084fc;">=&gt;</span> <span style="color:#4ade80;">हम दोस्त हैं &lt;EOS&gt;</span></td></tr>
+<tr><td class="cRo" style="white-space:nowrap;">Summarization</td><td style="font-family:monospace;font-size:0.77rem;line-height:1.8;"><span style="color:#fbbf24;">summarize: </span><span style="color:#38bdf8;">[long article...]</span> <span style="color:#c084fc;">TL;DR:</span> <span style="color:#4ade80;">[1-sentence summary] &lt;EOS&gt;</span></td></tr>
+<tr><td class="cRo" style="white-space:nowrap;">Q &amp; A</td><td style="font-family:monospace;font-size:0.77rem;line-height:1.8;"><span style="color:#fbbf24;">Q: </span><span style="color:#38bdf8;">Who are friends? Context: we are friends.</span> <span style="color:#c084fc;">A:</span> <span style="color:#4ade80;">we &lt;EOS&gt;</span></td></tr>
+<tr><td class="cRo" style="white-space:nowrap;">Sentiment</td><td style="font-family:monospace;font-size:0.77rem;line-height:1.8;"><span style="color:#fbbf24;">Sentiment of: </span><span style="color:#38bdf8;">This is absolutely amazing!</span> <span style="color:#c084fc;">Label:</span> <span style="color:#4ade80;">positive &lt;EOS&gt;</span></td></tr>
+<tr><td class="cRo" style="white-space:nowrap;">Code Gen</td><td style="font-family:monospace;font-size:0.77rem;line-height:1.8;"><span style="color:#fbbf24;">Write Python to add two numbers:</span> <span style="color:#c084fc;"># solution:</span> <span style="color:#4ade80;">def add(a,b): return a+b &lt;EOS&gt;</span></td></tr>
+<tr><td class="cRo" style="white-space:nowrap;">Pure CLM</td><td style="font-family:monospace;font-size:0.77rem;line-height:1.8;"><span style="color:#38bdf8;">we are </span><span style="color:#4ade80;">friends. We have known each other for years. &lt;EOS&gt;</span> <i style="color:#475569;">(no prompt!)</i></td></tr>
+</tbody></table>
+<div style="background:#060f1e;border:1px solid #1e3a5f;border-radius:8px;padding:12px;margin-bottom:10px;">
+<div style="font-size:0.82rem;font-weight:700;color:#fbbf24;margin-bottom:8px;">⚙️ Why Causal Self-Attention IS the Encoder (Diagram)</div>
+<table class="dt"><thead><tr><th>Position Range</th><th>Tokens</th><th>Can Attend To</th><th>Effect</th></tr></thead><tbody>
+<tr><td>0–2</td><td class="cA">Task Prompt tokens</td><td>Only tokens before self</td><td>Builds task-type representation</td></tr>
+<tr><td>3–7</td><td class="cB">Source / Input tokens</td><td>Prompt + all prior source tokens</td><td>Each source token contextualizes from the left — mini encoder!</td></tr>
+<tr class="hl"><td>8–12</td><td class="cG">Target / Output tokens</td><td>EVERYTHING left (positions 0–self)</td><td>Can attend to full source → generates correct answer</td></tr>
+</tbody></table>
+</div>
+<div style="background:rgba(225,29,72,0.08);border:1px solid rgba(225,29,72,0.4);border-radius:7px;padding:10px;font-size:0.84rem;">
+<b class="cRo">🧠 The Big Insight:</b> A dedicated encoder (like in T5 or BERT) processes the input bidirectionally and then hands off via cross-attention. GPT does this implicitly — the source tokens are just "more left context" for the target tokens. With enough parameters and data, the model learns to compress and use that context perfectly.<br><br>
+<b class="cA">Loss rule:</b> Only green (output) tokens contribute to the loss gradient. This teaches GPT to map prompt+source → correct output, NOT to reconstruct the source itself.
+</div>`
+}
+];
+
+var cur=0, auto=null;
+function render(){
+  var s=STEPS[cur];
+  document.getElementById('panelTitle').innerHTML=s.title;
+  document.getElementById('formulaBox').innerHTML='<h4>'+s.formula.h+'</h4>'+s.formula.body;
+  document.getElementById('workspace').innerHTML=s.workspace;
+  document.getElementById('sinfo').innerHTML='Step '+(cur+1)+' of '+STEPS.length;
+  for(var i=0;i<9;i++){var c=document.getElementById('sc'+i);if(c)c.classList.toggle('active',i===cur);}
+  var seqs=[
+    [{t:'we',d:true},{t:'are',d:true},{t:'?',cur:true}],
+    [{t:'we',d:true},{t:'are',d:true},{t:'friends',d:true},{t:'?',cur:true}],
+    [{t:'we',d:true},{t:'are',d:true},{t:'?',cur:true}],
+    [{t:'we',d:true},{t:'?',cur:true}],
+    [{t:'हम',d:true},{t:'दोस्त',d:true},{t:'हैं',d:true},{t:'.',cur:true}],
+    [{t:'हम',d:true},{t:'दोस्त',d:true},{t:'हैं',d:true}],
+    [{t:'=>',d:true},{t:'हम',cur:true}],
+    [{t:'TL;DR:',d:true},{t:'summary',cur:true}],
+    [{t:'[input]',d:true},{t:'=>',d:true},{t:'[output]',cur:true}]
+  ];
+  var seq=seqs[cur]||seqs[0];
+  var h='';
+  seq.forEach(function(tk){h+='<span class="'+(tk.cur?'gs-cur':'gs-done')+'">'+tk.t+'</span>';});
+  document.getElementById('genSeqSb').innerHTML=h;
+}
+function nextStep(){cur=(cur<STEPS.length-1)?cur+1:0;render();}
+function goStep(s){cur=s;render();}
+function toggleAuto(){
+  if(auto){clearInterval(auto);auto=null;document.getElementById('autoBtn').innerHTML='▶ Auto Play';}
+  else{auto=setInterval(function(){if(cur>=STEPS.length-1){clearInterval(auto);auto=null;document.getElementById('autoBtn').innerHTML='▶ Auto Play';}else{cur++;render();}},2000);document.getElementById('autoBtn').innerHTML='⏸ Pause';}
+}
+function resetAll(){if(auto){clearInterval(auto);auto=null;}document.getElementById('autoBtn').innerHTML='▶ Auto Play';cur=0;render();}
+render();
+</script>
+</body>
+</html>

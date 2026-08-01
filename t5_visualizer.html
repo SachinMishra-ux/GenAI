@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T5 / Flan-T5 Visualizer — Text-to-Text Transfer Transformer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#07101e;color:#f0f4ff;font-family:Arial,sans-serif;padding:20px;}
+h1{font-size:1.7rem;color:#fff;text-align:center;margin-bottom:4px;}
+.subtitle{text-align:center;color:#94a3b8;font-size:0.9rem;margin-bottom:18px;}
+.hero-badge{display:flex;justify-content:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.hb{padding:6px 16px;border-radius:20px;font-size:0.82rem;font-weight:700;}
+.hb-org{background:rgba(251,191,36,0.15);border:1px solid #fbbf24;color:#fbbf24;}
+.hb-year{background:rgba(56,189,248,0.15);border:1px solid #38bdf8;color:#38bdf8;}
+.hb-arch{background:rgba(244,114,182,0.15);border:1px solid #f472b6;color:#f472b6;}
+.hb-params{background:rgba(192,132,252,0.15);border:1px solid #c084fc;color:#c084fc;}
+.controls{background:#0f1e35;border:1px solid #1e3a5f;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+button{cursor:pointer;border:none;border-radius:7px;font-size:0.86rem;font-weight:700;padding:9px 15px;transition:transform 0.1s;}
+button:active{transform:scale(0.97);}
+.btn-amber{background:linear-gradient(135deg,#d97706,#92400e);color:#fff;box-shadow:0 4px 12px rgba(217,119,6,0.35);}
+.btn-blue{background:linear-gradient(135deg,#0ea5e9,#0369a1);color:#fff;}
+.btn-gray{background:#1e293b;color:#cbd5e1;border:1px solid #334155;}
+.step-row{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.sc{flex:1;min-width:110px;background:#0f1e35;border:1px solid #1e3a5f;border-radius:7px;padding:8px 6px;text-align:center;font-size:0.74rem;cursor:pointer;transition:all 0.2s;}
+.sc:hover{border-color:#d97706;}
+.sc.active{border-color:#d97706;background:rgba(217,119,6,0.12);box-shadow:0 0 10px rgba(217,119,6,0.2);}
+.sc .sn{display:block;font-size:0.6rem;color:#fbbf24;font-weight:800;margin-bottom:2px;}
+.sc .st{font-weight:700;color:#fff;font-size:0.78rem;}
+.layout{display:grid;grid-template-columns:1fr 290px;gap:16px;}
+@media(max-width:900px){.layout{grid-template-columns:1fr;}}
+.main-panel{background:#0f1e35;border:1px solid #1e3a5f;border-radius:12px;padding:18px;}
+.panel-title{font-size:1rem;font-weight:700;color:#fbbf24;margin-bottom:12px;}
+.formula-box{background:#060f1e;border:1px solid #1e3a5f;border-left:4px solid #d97706;border-radius:8px;padding:13px;margin-bottom:14px;font-size:0.84rem;line-height:1.7;}
+.formula-box h4{color:#fbbf24;font-size:0.9rem;margin-bottom:6px;}
+code{background:#1e293b;padding:2px 6px;border-radius:4px;font-family:'Courier New',monospace;font-size:0.79rem;color:#a5f3fc;}
+.dt{width:100%;border-collapse:collapse;font-size:0.81rem;}
+.dt th{text-align:left;padding:7px 9px;background:#060f1e;color:#94a3b8;border-bottom:1px solid #1e3a5f;}
+.dt td{padding:7px 9px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:top;}
+.dt tr.hl{background:rgba(217,119,6,0.08);}
+.cA{color:#fbbf24;font-weight:700;} .cG{color:#4ade80;font-weight:700;}
+.cB{color:#38bdf8;font-weight:700;} .cT{color:#2dd4bf;font-weight:700;}
+.cP{color:#c084fc;font-weight:700;} .cR{color:#f87171;font-weight:700;}
+.cPk{color:#f472b6;font-weight:700;}
+.tok{padding:5px 9px;border-radius:6px;font-size:0.8rem;font-weight:700;font-family:'Courier New',monospace;}
+.tok-row{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0;}
+.tk-prefix{background:rgba(251,191,36,0.2);border:1px solid #fbbf24;color:#fbbf24;}
+.tk-input{background:rgba(56,189,248,0.15);border:1px solid #38bdf8;color:#38bdf8;}
+.tk-mask{background:rgba(192,132,252,0.2);border:2px dashed #c084fc;color:#c084fc;}
+.tk-extra{background:rgba(248,113,113,0.15);border:1px solid #f87171;color:#f87171;}
+.tk-out{background:rgba(74,222,128,0.15);border:1px solid #4ade80;color:#4ade80;}
+.hc{padding:7px 5px;border-radius:4px;text-align:center;font-weight:700;font-size:0.72rem;min-width:55px;}
+.hc-mask{background:rgba(248,113,113,0.15);color:#f87171;border:1px dashed rgba(248,113,113,0.35);text-decoration:line-through;font-size:0.65rem;}
+.hl-h{color:#94a3b8;text-align:center;font-size:0.7rem;font-weight:700;}
+.hl-l{font-weight:700;color:#fbbf24;text-align:right;padding-right:6px;font-size:0.72rem;}
+.hmap-wrap{overflow-x:auto;}
+.hmap{display:inline-grid;gap:3px;align-items:center;}
+.sidebar{display:flex;flex-direction:column;gap:12px;}
+.sb{background:#0f1e35;border:1px solid #1e3a5f;border-radius:10px;padding:13px;}
+.sb-t{font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8;margin-bottom:8px;}
+.spec-row{display:flex;justify-content:space-between;font-size:0.8rem;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.spec-lbl{color:#94a3b8;} .spec-val{font-weight:700;color:#fbbf24;}
+.t5-block{border-radius:6px;padding:8px 12px;font-size:0.78rem;font-weight:700;border:1.5px solid transparent;text-align:center;margin-bottom:4px;}
+.tb-in{background:rgba(251,191,36,0.1);border-color:#fbbf24;color:#fbbf24;}
+.tb-enc{background:rgba(56,189,248,0.1);border-color:#38bdf8;color:#38bdf8;}
+.tb-cross{background:rgba(74,222,128,0.1);border-color:#4ade80;color:#4ade80;}
+.tb-dec{background:rgba(192,132,252,0.1);border-color:#c084fc;color:#c084fc;}
+.tb-out{background:rgba(244,114,182,0.1);border-color:#f472b6;color:#f472b6;}
+.tb-arrow{text-align:center;color:#475569;font-size:0.9rem;margin:1px 0;}
+.task-box{background:#060f1e;border:1px solid #1e3a5f;border-radius:7px;padding:8px;margin-bottom:6px;font-size:0.8rem;}
+.task-prefix{color:#fbbf24;font-weight:700;font-family:'Courier New',monospace;}
+.task-in{color:#38bdf8;}
+.task-out{color:#4ade80;font-weight:700;}
+</style>
+</head>
+<body>
+<h1>🧮 T5 / Flan-T5 — Text-to-Text Transfer Transformer</h1>
+<div class="subtitle">Google Research, 2020 · Raffel et al. · Encoder-Decoder · Everything is Text-to-Text · Flan-T5: Instruction Fine-tuned</div>
+<div class="hero-badge">
+  <span class="hb hb-org">🏢 Google Research, 2020</span>
+  <span class="hb hb-year">📄 Raffel et al.</span>
+  <span class="hb hb-arch">🏗️ Encoder-Decoder</span>
+  <span class="hb hb-params">⚡ T5-Small: 60M → T5-11B: 11B</span>
+</div>
+<div class="controls">
+  <button class="btn-amber" onclick="nextStep()">⏩ Next Step</button>
+  <button class="btn-blue" id="autoBtn" onclick="toggleAuto()">▶ Auto Play</button>
+  <button class="btn-gray" onclick="resetAll()">🔄 Reset</button>
+  <span id="sinfo" style="color:#94a3b8;font-size:0.83rem;"></span>
+</div>
+<div class="step-row">
+  <div class="sc active" id="sc0" onclick="goStep(0)"><span class="sn">STEP 0</span><div class="st">Architecture Overview</div></div>
+  <div class="sc" id="sc1" onclick="goStep(1)"><span class="sn">STEP 1</span><div class="st">Text-to-Text Framework</div></div>
+  <div class="sc" id="sc2" onclick="goStep(2)"><span class="sn">STEP 2</span><div class="st">Relative Position Bias</div></div>
+  <div class="sc" id="sc3" onclick="goStep(3)"><span class="sn">STEP 3</span><div class="st">Span Corruption (MLM)</div></div>
+  <div class="sc" id="sc4" onclick="goStep(4)"><span class="sn">STEP 4</span><div class="st">Multi-Task Training</div></div>
+  <div class="sc" id="sc5" onclick="goStep(5)"><span class="sn">STEP 5</span><div class="st">Flan-T5: Instruction Tuning</div></div>
+</div>
+<div class="layout">
+  <div class="main-panel">
+    <div class="panel-title" id="panelTitle">T5 Architecture Overview</div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="workspace"></div>
+  </div>
+  <div class="sidebar">
+    <div class="sb">
+      <div class="sb-t">T5 Model Specs</div>
+      <div class="spec-row"><span class="spec-lbl">Architecture</span><span class="spec-val">Encoder-Decoder</span></div>
+      <div class="spec-row"><span class="spec-lbl">Enc Attention</span><span class="spec-val">Bidirectional</span></div>
+      <div class="spec-row"><span class="spec-lbl">Dec Attention</span><span class="spec-val">Causal + Cross-Attn</span></div>
+      <div class="spec-row"><span class="spec-lbl">Position Encoding</span><span class="spec-val">Relative Position Bias</span></div>
+      <div class="spec-row"><span class="spec-lbl">Tokenizer</span><span class="spec-val">SentencePiece (32K)</span></div>
+      <div class="spec-row"><span class="spec-lbl">T5-Small Params</span><span class="spec-val">60M</span></div>
+      <div class="spec-row"><span class="spec-lbl">T5-Base Params</span><span class="spec-val">220M</span></div>
+      <div class="spec-row"><span class="spec-lbl">T5-Large Params</span><span class="spec-val">770M</span></div>
+      <div class="spec-row"><span class="spec-lbl">T5-11B Params</span><span class="spec-val">11B</span></div>
+      <div class="spec-row"><span class="spec-lbl">Pre-training</span><span class="spec-val">Span Corruption</span></div>
+      <div class="spec-row"><span class="spec-lbl">Flan-T5</span><span class="spec-val">Instruction Tuned</span></div>
+    </div>
+    <div class="sb">
+      <div class="sb-t">T5 Full Architecture</div>
+      <div class="t5-block tb-in">Task Prefix + Input Text</div>
+      <div class="tb-arrow">⬇</div>
+      <div class="t5-block tb-enc">ENCODER (Bidirectional)<div style="font-size:0.68rem;color:#94a3b8;font-weight:400;">Self-Attn (full) + FFNN + Add&Norm</div></div>
+      <div class="tb-arrow">⬇ Z_enc</div>
+      <div class="t5-block tb-cross">Cross-Attention Bridge<div style="font-size:0.68rem;color:#94a3b8;font-weight:400;">Q_dec · K_enc → reads encoder output</div></div>
+      <div class="tb-arrow">⬆⬇</div>
+      <div class="t5-block tb-dec">DECODER (Causal)<div style="font-size:0.68rem;color:#94a3b8;font-weight:400;">Masked Attn + Cross-Attn + FFNN</div></div>
+      <div class="tb-arrow">⬇</div>
+      <div class="t5-block tb-out">Linear + Softmax → Output Text</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var STEPS = [
+{
+  title:"T5 Architecture — Full Encoder-Decoder Like the Original Transformer",
+  formula:{h:"🏗️ T5 uses the complete Transformer: Encoder stack + Decoder stack",
+  body:`T5 is closest in spirit to the original 'Attention is All You Need' paper — full encoder-decoder.<br>
+<b>Encoder:</b> Bidirectional Self-Attention (sees all tokens) — like BERT<br>
+<b>Decoder:</b> Causal Self-Attention + Cross-Attention to Encoder — like the original Transformer Decoder<br><br>
+<b>Key modifications from original Transformer:</b><br>
+• <b>Relative Position Bias</b> instead of absolute sinusoidal PE<br>
+• <b>Pre-LayerNorm</b> (normalize before sub-layer, not after)<br>
+• <b>Simplified Layer Norm</b> (no bias term, called RMSNorm in T5)<br>
+• All tasks framed as Text-to-Text!`},
+  workspace:`<table class="dt"><thead><tr><th>Component</th><th>T5-Base</th><th>T5-Large</th><th>T5-11B</th><th>Notes</th></tr></thead><tbody>
+<tr class="hl"><td class="cA">Encoder Layers</td><td>12</td><td>24</td><td>24</td><td>Bidirectional self-attention</td></tr>
+<tr><td class="cB">Decoder Layers</td><td>12</td><td>24</td><td>24</td><td>Causal + Cross-Attention</td></tr>
+<tr><td class="cT">Hidden Dim (d_model)</td><td>768</td><td>1024</td><td>1024</td><td>Same as BERT Base/Large</td></tr>
+<tr><td class="cG">FFNN Dim (d_ff)</td><td>3072</td><td>4096</td><td>65,536</td><td>4× expansion (base/large), 64× (11B)</td></tr>
+<tr><td class="cP">Attention Heads</td><td>12</td><td>16</td><td>128</td><td>Head dim = d_model / heads</td></tr>
+<tr><td class="cA">Total Parameters</td><td>220M</td><td>770M</td><td><b>11B</b></td><td>Largest variant</td></tr>
+</tbody></table>
+<div style="margin-top:10px;background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.4);border-radius:7px;padding:10px;font-size:0.84rem;">
+<b class="cA">T5 = "All-Rounder":</b> Combines BERT's understanding (encoder) with GPT's generation (decoder).<br>
+Ideal for translation, summarization, QA, classification — all in one unified model!
+</div>`
+},
+{
+  title:"Text-to-Text Framework — Every NLP Task is Text → Text",
+  formula:{h:"📝 Unifying Principle: Every task = (text input + task prefix) → text output",
+  body:`T5's breakthrough insight: <b>ALL NLP tasks can be expressed as text-to-text</b>!<br>
+Instead of task-specific architectures/heads, just change the <b>input prefix</b>.<br>
+<code>Input: "[task prefix]: [input text]"</code><br>
+<code>Output: "[answer text]"</code><br><br>
+This means the SAME model, SAME weights, SAME training objective can handle translation, summarization, classification, QA — all at once!`},
+  workspace:`<div style="font-size:0.82rem;margin-bottom:10px;color:#94a3b8;">T5 input format: <span class="cA">task prefix</span> + <span class="cB">input text</span> → <span class="cG">output text</span></div>
+<div class="task-box"><span class="task-prefix">translate English to Hindi: </span><span class="task-in">"we are friends"</span><br>→ <span class="task-out">"हम दोस्त हैं"</span></div>
+<div class="task-box"><span class="task-prefix">summarize: </span><span class="task-in">"The quick brown fox jumps over the lazy dog. The fox was very swift."</span><br>→ <span class="task-out">"A swift fox jumped over a dog."</span></div>
+<div class="task-box"><span class="task-prefix">sentiment: </span><span class="task-in">"This movie was absolutely fantastic!"</span><br>→ <span class="task-out">"positive"</span></div>
+<div class="task-box"><span class="task-prefix">cola sentence: </span><span class="task-in">"We are friends the."</span><br>→ <span class="task-out">"unacceptable"</span></div>
+<div class="task-box"><span class="task-prefix">question: </span><span class="task-in">"Who are friends? context: we are friends"</span><br>→ <span class="task-out">"we"</span></div>
+<div style="margin-top:8px;font-size:0.82rem;color:#94a3b8;">Each task label is plain text. Classification outputs "positive"/"negative", not class 0/1!</div>`
+},
+{
+  title:"Relative Position Bias — Key T5 Innovation Over BERT/GPT",
+  formula:{h:"📐 Relative Position: Attention bias based on distance between tokens, not absolute position",
+  body:`<b>BERT & Original Transformer:</b> Use <i>absolute</i> positional encodings<br>
+<code>X_final = Embedding(token) + PE(absolute_position)</code><br>
+PE is a fixed vector for each position slot.<br><br>
+<b>T5:</b> Uses <i>relative</i> position bias directly in attention scores:<br>
+<code>Attention_score[i,j] = Q_i · K_j^T / √d_k + b(i-j)</code><br>
+where <code>b(i-j)</code> is a learned scalar bias based on the relative distance (i-j).<br><br>
+<b>Advantage:</b> T5 generalizes better to sequences longer than those seen during training!`},
+  workspace:`<table class="dt"><thead><tr><th>Method</th><th>BERT (Absolute)</th><th>GPT (Absolute)</th><th>T5 (Relative)</th></tr></thead><tbody>
+<tr class="hl"><td class="cA">Position Info</td><td>Learned vector at each slot</td><td>Learned vector at each slot</td><td>Learned bias on attention score</td></tr>
+<tr><td class="cB">Max Train Length</td><td>512 → fails beyond 512</td><td>2048 → struggles beyond</td><td class="cG">Extrapolates beyond train length!</td></tr>
+<tr><td class="cT">Added where?</td><td>Input embedding</td><td>Input embedding</td><td>Attention logit (score)</td></tr>
+<tr><td class="cG">Bias for dist=0</td><td>Not applicable</td><td>Not applicable</td><td>b(0) = learned scalar</td></tr>
+<tr><td class="cG">Bias for dist=5</td><td>Not applicable</td><td>Not applicable</td><td>b(5) = smaller learned scalar</td></tr>
+<tr><td class="cA">Shared across heads?</td><td>N/A</td><td>N/A</td><td>32 buckets, shared across layers</td></tr>
+</tbody></table>
+<div style="margin-top:8px;background:#060f1e;border:1px solid #1e3a5f;border-radius:7px;padding:10px;font-size:0.82rem;">
+<b class="cA">Intuition:</b> "are" is 1 position from "we" and 1 from "friends". T5 cares about this distance, not the absolute positions 2 and 3 in the sentence.
+</div>`
+},
+{
+  title:"T5 Pre-training — Span Corruption (Improved over BERT's MLM)",
+  formula:{h:"🎭 Span Corruption: Mask entire spans of consecutive tokens, not just single tokens",
+  body:`BERT masks random individual tokens. T5 masks <b>contiguous spans</b>:<br>
+• <b>~15% of tokens</b> are selected<br>
+• Selected tokens are replaced with a <b>single sentinel token</b>: <code>&lt;extra_id_0&gt;, &lt;extra_id_1&gt;...</code><br>
+• The model must reconstruct ALL masked spans in the output<br><br>
+<code>Input:  "we &lt;extra_id_0&gt; friends &lt;extra_id_1&gt;"</code><br>
+<code>Output: "&lt;extra_id_0&gt; are &lt;extra_id_1&gt; . &lt;/s&gt;"</code>`},
+  workspace:`<div style="font-size:0.82rem;margin-bottom:8px;color:#94a3b8;">Original text: "we are good friends today"</div>
+<div style="margin-bottom:8px;"><b style="font-size:0.81rem;color:#94a3b8;">T5 Input (corrupted, fed to encoder):</b>
+<div class="tok-row">
+<span class="tok tk-input">we</span><span class="tok tk-mask">&lt;extra_id_0&gt;</span><span class="tok tk-input">friends</span><span class="tok tk-mask">&lt;extra_id_1&gt;</span>
+</div></div>
+<div style="margin-bottom:10px;"><b style="font-size:0.81rem;color:#94a3b8;">T5 Target Output (what decoder must generate):</b>
+<div class="tok-row">
+<span class="tok tk-extra">&lt;extra_id_0&gt;</span><span class="tok tk-out">are good</span><span class="tok tk-extra">&lt;extra_id_1&gt;</span><span class="tok tk-out">today</span><span class="tok tk-out">&lt;/s&gt;</span>
+</div></div>
+<table class="dt"><thead><tr><th>Method</th><th>BERT MLM</th><th>T5 Span Corruption</th><th>GPT CLM</th></tr></thead><tbody>
+<tr><td class="cA">What is masked</td><td>Random single tokens</td><td class="cG">Random token spans</td><td>Nothing (predict next)</td></tr>
+<tr><td class="cB">Mask rate</td><td>15%</td><td>15% of tokens</td><td>100% (all future)</td></tr>
+<tr><td class="cT">Loss on</td><td>Masked positions only</td><td class="cG">All output tokens</td><td>All positions</td></tr>
+<tr><td class="cP">Bidirectional?</td><td>Yes (encoder only)</td><td class="cG">Enc: yes, Dec: no</td><td>No</td></tr>
+</tbody></table>`
+},
+{
+  title:"T5 Multi-Task Training — One Model for All NLP Tasks",
+  formula:{h:"🎯 Multi-Task Mixture: Pre-train + fine-tune on 1800+ diverse tasks simultaneously",
+  body:`T5 demonstrates that a single model can be trained on a <b>mixture of NLP tasks</b>:<br>
+<b>Pre-training:</b> Span corruption on C4 dataset (~750GB cleaned Common Crawl)<br>
+<b>Fine-tuning:</b> All tasks at once with their text-prefix format<br><br>
+The model learns to distinguish tasks purely from the text prefix — no architectural changes needed!`},
+  workspace:`<table class="dt"><thead><tr><th>Task</th><th>Input Prefix</th><th>Example Input</th><th>Example Output</th></tr></thead><tbody>
+<tr class="hl"><td class="cA">Translation</td><td class="cA">translate English to Hindi:</td><td class="cB">"we are friends"</td><td class="cG">"हम दोस्त हैं"</td></tr>
+<tr><td class="cA">Summarization</td><td class="cA">summarize:</td><td class="cB">"[long article...]"</td><td class="cG">"[2-3 sentence summary]"</td></tr>
+<tr><td class="cA">Classification</td><td class="cA">sst2 sentence:</td><td class="cB">"This is amazing!"</td><td class="cG">"positive"</td></tr>
+<tr><td class="cA">QA (closed book)</td><td class="cA">trivia question:</td><td class="cB">"Who wrote Hamlet?"</td><td class="cG">"William Shakespeare"</td></tr>
+<tr><td class="cA">Grammar Check</td><td class="cA">cola sentence:</td><td class="cB">"We friends are."</td><td class="cG">"unacceptable"</td></tr>
+<tr><td class="cA">NLI</td><td class="cA">mnli hypothesis:</td><td class="cB">"[premise] [hyp]"</td><td class="cG">"entailment"</td></tr>
+</tbody></table>
+<div style="margin-top:10px;background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.4);border-radius:7px;padding:10px;font-size:0.84rem;">
+<b class="cA">🏆 T5-11B GLUE score: 89.7</b> — state-of-the-art at launch across all NLP benchmarks.<br>
+<b class="cG">Flan-T5 further improved</b> this by instruction-tuning on 1,800+ tasks!
+</div>`
+},
+{
+  title:"Flan-T5 — Instruction Fine-tuning Makes T5 a Better Zero-Shot Model",
+  formula:{h:"🌟 Flan-T5 = T5 + Instruction Fine-tuning on 1,800+ Diverse Tasks",
+  body:`<b>Flan</b> stands for "Fine-tuning Language Models" (Google Brain, 2022).<br>
+Flan-T5 takes a pre-trained T5 and fine-tunes it on an enormous <b>instruction dataset</b>:<br>
+• 1,800+ diverse NLP tasks converted to instruction format<br>
+• Tasks include: reasoning, translation, coding, math, summarization, dialog...<br><br>
+<b>Result:</b> Flan-T5 dramatically outperforms T5 on zero-shot and few-shot tasks.<br>
+It learns to follow natural language instructions — not just task prefixes!`},
+  workspace:`<table class="dt"><thead><tr><th>Comparison</th><th>T5</th><th>Flan-T5</th><th>Improvement</th></tr></thead><tbody>
+<tr class="hl"><td class="cA">Zero-shot MMLU</td><td>25.4%</td><td class="cG">52.4%</td><td class="cG">+27 points!</td></tr>
+<tr><td class="cB">BBH (reasoning)</td><td>14.6%</td><td class="cG">45.3%</td><td class="cG">+30.7 points!</td></tr>
+<tr><td class="cT">Input format</td><td>"translate en to hi: text"</td><td class="cG">"Translate this text to Hindi: text"</td><td>Natural language</td></tr>
+<tr><td class="cP">Fine-tuning tasks</td><td>Task-specific only</td><td class="cG">1,800+ mixed tasks</td><td>Generalization</td></tr>
+<tr><td class="cA">Instruction follow</td><td>Limited</td><td class="cG">Excellent</td><td>GPT-3 comparable</td></tr>
+</tbody></table>
+<div style="margin-top:10px;">
+<div style="font-size:0.82rem;margin-bottom:8px;color:#94a3b8;">Example: Flan-T5 natural language instruction following:</div>
+<div class="task-box"><span class="task-prefix">Instruction: </span><span class="task-in">"Translate the following English sentence into Hindi and respond only with the translation."</span><br><span class="task-prefix">Input: </span><span class="task-in">"we are friends"</span><br>→ <span class="task-out">"हम दोस्त हैं"</span></div>
+<div style="font-size:0.81rem;color:#94a3b8;margin-top:6px;">Flan-T5-XXL (11B params) approaches GPT-3-level performance at 1/16th the model size!</div>
+</div>`
+}
+];
+
+var cur=0, auto=null;
+function render(){
+  var s=STEPS[cur];
+  document.getElementById('panelTitle').innerHTML=s.title;
+  document.getElementById('formulaBox').innerHTML='<h4>'+s.formula.h+'</h4>'+s.formula.body;
+  document.getElementById('workspace').innerHTML=s.workspace;
+  document.getElementById('sinfo').innerHTML='Step '+(cur+1)+' of '+STEPS.length;
+  for(var i=0;i<6;i++){var c=document.getElementById('sc'+i);if(c)c.classList.toggle('active',i===cur);}
+}
+function nextStep(){cur=(cur<STEPS.length-1)?cur+1:0;render();}
+function goStep(s){cur=s;render();}
+function toggleAuto(){
+  if(auto){clearInterval(auto);auto=null;document.getElementById('autoBtn').innerHTML='▶ Auto Play';}
+  else{auto=setInterval(function(){if(cur>=STEPS.length-1){clearInterval(auto);auto=null;document.getElementById('autoBtn').innerHTML='▶ Auto Play';}else{cur++;render();}},2000);document.getElementById('autoBtn').innerHTML='⏸ Pause';}
+}
+function resetAll(){if(auto){clearInterval(auto);auto=null;}document.getElementById('autoBtn').innerHTML='▶ Auto Play';cur=0;render();}
+render();
+</script>
+</body>
+</html>
