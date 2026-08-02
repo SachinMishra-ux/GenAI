@@ -1,5 +1,7 @@
-uv init
+``` uv init ```
 
-create .env file
+``` create .env file ```
 
-uv add langchain
+``` uv add langchain ```
+
+``` uv sync ```
