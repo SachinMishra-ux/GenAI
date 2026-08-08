@@ -3,7 +3,7 @@ from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+load_dotenv(override=True)
 
 def get_groq_llm():
     return ChatOpenAI(
@@ -15,5 +15,7 @@ def get_groq_llm():
 
 llm = get_groq_llm()
 
-result= llm.invoke("Write a 5 line poem on cricket")
+#result= llm.invoke("Write a 5 line poem on cricket")
+result= llm.invoke("do you remeber my last query ?")
+print(result)
 print(result.content)

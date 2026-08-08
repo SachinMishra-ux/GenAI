@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 llm = HuggingFaceEndpoint(
-    repo_id="unsloth/Laguna-S-2.1-GGUF",
+    repo_id="Qwen/Qwen3.5-4B",
     task="text-generation"
 )
 

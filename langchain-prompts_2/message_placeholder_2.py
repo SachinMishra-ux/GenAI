@@ -6,6 +6,22 @@ chat_template = ChatPromptTemplate([
     ('human','{query}')
 ])
 
+
+from langchain_openai import ChatOpenAI
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
+def get_groq_llm():
+    return ChatOpenAI(
+        model= "openai/gpt-oss-120b",
+        base_url= "https://api.groq.com/openai/v1",
+        api_key= os.getenv("GROQ_API_KEY"),
+        max_tokens= 1000
+    )
+
+model = get_groq_llm()
+
 chat_history = []
 # load chat history
 with open('chat_history.txt') as f:
@@ -17,3 +33,9 @@ print(chat_history)
 prompt = chat_template.invoke({'chat_history':chat_history, 'query':'Where is my refund'})
 
 print(prompt)
+
+result= model.invoke(prompt)
+
+print(result.content)
+
+
