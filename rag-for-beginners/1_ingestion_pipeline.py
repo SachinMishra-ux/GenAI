@@ -1,8 +1,9 @@
 import os
 from langchain_community.document_loaders import TextLoader, DirectoryLoader
 from langchain_text_splitters import CharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+# from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -67,7 +68,7 @@ def create_vector_store(chunks, persist_directory="db/chroma_db"):
     """Create and persist ChromaDB vector store"""
     print("Creating embeddings and storing in ChromaDB...")
         
-    embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
+    embedding_model = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
     
     # Create ChromaDB vector store
     print("--- Creating vector store ---")
@@ -87,14 +88,14 @@ def main():
     print("=== RAG Document Ingestion Pipeline ===\n")
     
     # Define paths
-    docs_path = "docs"
+    docs_path = "/Users/sachinmishra/Desktop/GenAI/rag-for-beginners/docs"
     persistent_directory = "db/chroma_db"
     
     # Check if vector store already exists
     if os.path.exists(persistent_directory):
         print("✅ Vector store already exists. No need to re-process documents.")
         
-        embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
+        embedding_model = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
         vectorstore = Chroma(
             persist_directory=persistent_directory,
             embedding_function=embedding_model, 
@@ -106,12 +107,14 @@ def main():
     print("Persistent directory does not exist. Initializing vector store...\n")
     
     # Step 1: Load documents
-    documents = load_documents(docs_path)  
+    documents = load_documents(docs_path) 
 
-    # Step 2: Split into chunks
+    # # Step 2: Split into chunks
     chunks = split_documents(documents)
+
+    print(f"\n✅ Total chunks created: {len(chunks)}")
     
-    # # Step 3: Create vector store
+    # # # Step 3: Create vector store
     vectorstore = create_vector_store(chunks, persistent_directory)
     
     print("\n✅ Ingestion complete! Your documents are now ready for RAG queries.")
